@@ -12,28 +12,23 @@
 <!-- CAMERA -->
 <video id="camera" autoplay playsinline class="w-80 rounded-lg border border-blue-500"></video>
 
-<!-- STRESS DISPLAY -->
 <div class="mt-6 text-2xl">
 Stress Level: <span id="stressValue">40</span>%
 </div>
 
-<!-- HOME SCREEN -->
-<div id="homeScreen" class="mt-6">
-<button id="increaseStress" class="bg-red-600 px-6 py-2 rounded">
-Simulate Stress
-</button>
-</div>
+<p id="statusText" class="mt-2 text-gray-400">Monitoring stress...</p>
 
 <!-- ACTIVITY SCREEN -->
 <div id="activityScreen" class="hidden mt-8 text-center">
 <h2 class="text-3xl mb-4">Breathing Exercise</h2>
-<p id="breathText" class="text-xl">Inhale...</p>
+<p id="breathText" class="text-xl">Inhale slowly...</p>
 </div>
 
 <script>
 
 let stressLevel = 40;
-let voiceEnabled = false;
+let voiceReady = false;
+let activityStarted = false;
 
 /* ================= CAMERA ================= */
 
@@ -47,50 +42,52 @@ navigator.mediaDevices.getUserMedia({ video: true })
     alert("Camera permission denied");
 });
 
-/* ================= VOICE ================= */
+/* ================= VOICE UNLOCK ================= */
 
 document.body.addEventListener("click", () => {
-    if (!voiceEnabled) {
-        const unlock = new SpeechSynthesisUtterance("Voice enabled");
+    if (!voiceReady) {
+        const unlock = new SpeechSynthesisUtterance("Monitoring started");
         speechSynthesis.speak(unlock);
-        voiceEnabled = true;
+        voiceReady = true;
     }
 }, { once: true });
 
 function speak(text) {
-    if (!voiceEnabled) return;
+    if (!voiceReady) return;
     speechSynthesis.cancel();
     const msg = new SpeechSynthesisUtterance(text);
     msg.rate = 0.9;
     speechSynthesis.speak(msg);
 }
 
-/* ================= STRESS UPDATE ================= */
+/* ================= STRESS AUTO INCREASE ================= */
 
 function updateStress() {
     document.getElementById("stressValue").textContent = stressLevel;
 
-    if (stressLevel >= 70) {
+    if (stressLevel >= 70 && !activityStarted) {
         startActivity();
     }
 }
 
-/* ================= SIMULATE STRESS ================= */
-
-document.getElementById("increaseStress").onclick = () => {
-    stressLevel += 15;
-    if (stressLevel > 100) stressLevel = 100;
-    updateStress();
-};
+setInterval(() => {
+    if (!activityStarted) {
+        stressLevel += 5;
+        if (stressLevel > 100) stressLevel = 100;
+        updateStress();
+    }
+}, 3000);
 
 /* ================= ACTIVITY ================= */
 
 function startActivity() {
 
-    document.getElementById("homeScreen").classList.add("hidden");
-    document.getElementById("activityScreen").classList.remove("hidden");
+    activityStarted = true;
 
-    speak("Your stress level is high. Follow this breathing exercise.");
+    document.getElementById("activityScreen").classList.remove("hidden");
+    document.getElementById("statusText").textContent = "High stress detected!";
+
+    speak("Your stress is high. Please breathe slowly with me.");
 
     let phases = ["Inhale slowly...", "Hold...", "Exhale slowly..."];
     let index = 0;
@@ -101,8 +98,13 @@ function startActivity() {
 
         if (index > 2) {
             clearInterval(interval);
+
             stressLevel -= 30;
             if (stressLevel < 0) stressLevel = 0;
+
+            activityStarted = false;
+            document.getElementById("activityScreen").classList.add("hidden");
+            document.getElementById("statusText").textContent = "Monitoring stress...";
             updateStress();
         }
     }, 3000);
