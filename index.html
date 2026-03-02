@@ -2,116 +2,100 @@
 <html>
 <head>
 <title>AI Stress Monitor</title>
-<script src="https://cdn.tailwindcss.com"></script>
+<style>
+body {
+  background: black;
+  color: white;
+  text-align: center;
+  font-family: Arial;
+}
+#game {
+  display: none;
+  margin-top: 30px;
+}
+button {
+  padding: 10px 20px;
+  margin-top: 10px;
+  font-size: 16px;
+}
+</style>
 </head>
+<body>
 
-<body class="bg-black text-white flex flex-col items-center min-h-screen">
+<h1>AI Stress Monitor</h1>
 
-<h1 class="text-4xl mt-6 mb-4">AI Stress Monitor</h1>
+<h2>Stress Level: <span id="stress">40</span>%</h2>
 
-<!-- CAMERA -->
-<video id="camera" autoplay playsinline class="w-80 rounded-lg border border-blue-500"></video>
+<button onclick="increaseStress()">Increase Stress</button>
 
-<div class="mt-6 text-2xl">
-Stress Level: <span id="stressValue">40</span>%
-</div>
-
-<p id="statusText" class="mt-2 text-gray-400">Monitoring stress...</p>
-
-<!-- ACTIVITY SCREEN -->
-<div id="activityScreen" class="hidden mt-8 text-center">
-<h2 class="text-3xl mb-4">Breathing Exercise</h2>
-<p id="breathText" class="text-xl">Inhale slowly...</p>
+<div id="game">
+  <h2>Breathing Activity</h2>
+  <p id="activityText">Inhale...</p>
 </div>
 
 <script>
 
-let stressLevel = 40;
-let voiceReady = false;
-let activityStarted = false;
+let stress = 40;
+let voiceUnlocked = false;
+let gameStarted = false;
 
-/* ================= CAMERA ================= */
+const stressText = document.getElementById("stress");
+const game = document.getElementById("game");
+const activityText = document.getElementById("activityText");
 
-const video = document.getElementById("camera");
-
-navigator.mediaDevices.getUserMedia({ video: true })
-.then(stream => {
-    video.srcObject = stream;
-})
-.catch(err => {
-    alert("Camera permission denied");
-});
-
-/* ================= VOICE UNLOCK ================= */
-
-document.body.addEventListener("click", () => {
-    if (!voiceReady) {
-        const unlock = new SpeechSynthesisUtterance("Monitoring started");
-        speechSynthesis.speak(unlock);
-        voiceReady = true;
-    }
+/* 🔊 Unlock voice on first click */
+document.body.addEventListener("click", function() {
+  if (!voiceUnlocked) {
+    let msg = new SpeechSynthesisUtterance("System ready");
+    speechSynthesis.speak(msg);
+    voiceUnlocked = true;
+  }
 }, { once: true });
 
 function speak(text) {
-    if (!voiceReady) return;
-    speechSynthesis.cancel();
-    const msg = new SpeechSynthesisUtterance(text);
-    msg.rate = 0.9;
-    speechSynthesis.speak(msg);
+  if (!voiceUnlocked) return;
+  speechSynthesis.cancel();
+  let msg = new SpeechSynthesisUtterance(text);
+  msg.rate = 0.9;
+  speechSynthesis.speak(msg);
 }
 
-/* ================= STRESS AUTO INCREASE ================= */
+function increaseStress() {
+  stress += 15;
+  if (stress > 100) stress = 100;
+  stressText.innerText = stress;
 
-function updateStress() {
-    document.getElementById("stressValue").textContent = stressLevel;
+  if (stress >= 70 && !gameStarted) {
+    startGame();
+  }
+}
 
-    if (stressLevel >= 70 && !activityStarted) {
-        startActivity();
+function startGame() {
+  gameStarted = true;
+  game.style.display = "block";
+
+  speak("Your stress is high. Please breathe slowly.");
+
+  let steps = ["Inhale slowly...", "Hold...", "Exhale slowly..."];
+  let i = 0;
+
+  let interval = setInterval(function() {
+    activityText.innerText = steps[i];
+    i++;
+
+    if (i >= steps.length) {
+      clearInterval(interval);
+      stress -= 30;
+      if (stress < 0) stress = 0;
+      stressText.innerText = stress;
+      game.style.display = "none";
+      gameStarted = false;
     }
+
+  }, 3000);
 }
-
-setInterval(() => {
-    if (!activityStarted) {
-        stressLevel += 5;
-        if (stressLevel > 100) stressLevel = 100;
-        updateStress();
-    }
-}, 3000);
-
-/* ================= ACTIVITY ================= */
-
-function startActivity() {
-
-    activityStarted = true;
-
-    document.getElementById("activityScreen").classList.remove("hidden");
-    document.getElementById("statusText").textContent = "High stress detected!";
-
-    speak("Your stress is high. Please breathe slowly with me.");
-
-    let phases = ["Inhale slowly...", "Hold...", "Exhale slowly..."];
-    let index = 0;
-
-    let interval = setInterval(() => {
-        document.getElementById("breathText").textContent = phases[index];
-        index++;
-
-        if (index > 2) {
-            clearInterval(interval);
-
-            stressLevel -= 30;
-            if (stressLevel < 0) stressLevel = 0;
-
-            activityStarted = false;
-            document.getElementById("activityScreen").classList.add("hidden");
-            document.getElementById("statusText").textContent = "Monitoring stress...";
-            updateStress();
-        }
-    }, 3000);
-}
-
-updateStress();
 
 </script>
+
 </body>
 </html>
