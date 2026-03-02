@@ -11,6 +11,9 @@ document.addEventListener("DOMContentLoaded", function () {
   let lastBlinkTime = 0;
   let lastNoseX = null;
   let activityStarted = false;
+  let cameraInstance = null;
+
+  /* ================= VOICE ================= */
 
   function speak(message) {
     const speech = new SpeechSynthesisUtterance(message);
@@ -19,36 +22,45 @@ document.addEventListener("DOMContentLoaded", function () {
     window.speechSynthesis.speak(speech);
   }
 
+  /* ================= UPDATE STRESS ================= */
+
   function updateStress() {
-  if (stressScore > 100) stressScore = 100;
-  if (stressScore < 0) stressScore = 0;
+    if (stressScore > 100) stressScore = 100;
+    if (stressScore < 0) stressScore = 0;
 
-  stressText.innerText = "Stress Level: " + Math.round(stressScore) + "%";
+    stressText.innerText = "Stress Level: " + Math.round(stressScore) + "%";
 
-  // FORCE ACTIVITY AT 40 FOR TEST
-  if (stressScore > 40 && !activityStarted) {
-    activityStarted = true;
-    speak("You are in high stress. Do activity now.");
-    launchActivity();
+    // 🔥 Trigger activity when stress > 40 (change to 70 if you want)
+    if (stressScore > 40 && !activityStarted) {
+      activityStarted = true;
+      speak("You are in high stress. Do activity now.");
+      launchActivity();
+    }
   }
-}
+
+  /* ================= LAUNCH ACTIVITY ================= */
 
   function launchActivity() {
 
-    // Stop camera
+    // Stop MediaPipe camera loop
+    if (cameraInstance) {
+      cameraInstance.stop();
+    }
+
+    // Stop video stream
     const stream = videoElement.srcObject;
     if (stream) {
       stream.getTracks().forEach(track => track.stop());
     }
 
-    // Hide monitor
+    // Switch UI
     monitorSection.style.display = "none";
-
-    // Show activity
     activitySection.style.display = "block";
 
     startBreathing();
   }
+
+  /* ================= BREATHING ACTIVITY ================= */
 
   function startBreathing() {
 
@@ -70,6 +82,8 @@ document.addEventListener("DOMContentLoaded", function () {
     }, 8000);
   }
 
+  /* ================= CAMERA ================= */
+
   async function initCamera() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -86,8 +100,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
     } catch (error) {
       instruction.innerText = "Camera denied";
+      console.error(error);
     }
   }
+
+  /* ================= FACEMESH ================= */
 
   function startFaceMesh() {
 
@@ -105,11 +122,13 @@ document.addEventListener("DOMContentLoaded", function () {
 
     faceMesh.onResults(results => {
 
+      if (activityStarted) return;
+
       if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) return;
 
       const landmarks = results.multiFaceLandmarks[0];
 
-      // Blink
+      // Blink detection
       const leftEyeTop = landmarks[159];
       const leftEyeBottom = landmarks[145];
       const eyeDistance = Math.abs(leftEyeTop.y - leftEyeBottom.y);
@@ -117,38 +136,39 @@ document.addEventListener("DOMContentLoaded", function () {
       if (eyeDistance < 0.01) {
         const now = Date.now();
         if (now - lastBlinkTime > 400) {
-          stressScore += 5;
+          stressScore += 15;
           lastBlinkTime = now;
         }
       }
 
-      // Head shake
+      // Head shake detection
       const nose = landmarks[1];
       const currentX = nose.x;
 
       if (lastNoseX !== null) {
         const movement = Math.abs(currentX - lastNoseX);
-        if (movement > 0.02) stressScore += 3;
+        if (movement > 0.02) {
+          stressScore += 10;
+        }
       }
 
       lastNoseX = currentX;
 
-      // Calm reduction
-      stressScore -= 0.5;
+      // Slow calm reduction
+      stressScore -= 0.05;
 
       updateStress();
     });
 
-    const camera = new Camera(videoElement, {
+    cameraInstance = new Camera(videoElement, {
       onFrame: async () => {
         await faceMesh.send({ image: videoElement });
       }
     });
 
-    camera.start();
+    cameraInstance.start();
   }
 
   initCamera();
 
 });
-
