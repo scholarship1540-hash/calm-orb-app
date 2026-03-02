@@ -21,7 +21,7 @@ function updateStress(){
 
   if(stress>70 && !triggered){
     triggered=true;
-    speak("You are in high stress. Click one activity.");
+    speak("You are in high stress now click on one activity you want");
     document.getElementById("monitor").style.display="none";
     document.getElementById("activity").style.display="block";
   }
@@ -50,17 +50,18 @@ function startFace(){
 
     const eye=Math.abs(l[159].y-l[145].y);
     if(eye<0.01){
-      if(Date.now()-lastBlink>600){
-        stress+=5;
+      if(Date.now()-lastBlink>700){
+        stress+=4;
         lastBlink=Date.now();
       }
     }
 
     const move=Math.abs(l[1].x-(lastX||l[1].x));
-    if(move>0.03) stress+=3;
+    if(move>0.04) stress+=2;
 
     lastX=l[1].x;
-    stress-=0.02;
+
+    stress-=0.01; // slower decrease
 
     updateStress();
   });
@@ -71,6 +72,12 @@ function startFace(){
 }
 
 /* SECTION CONTROL */
+window.goBackMenu=()=>{
+  document.querySelectorAll(".section")
+  .forEach(s=>s.style.display="none");
+  document.getElementById("menu").style.display="block";
+};
+
 function hideSections(){
   document.querySelectorAll(".section")
   .forEach(s=>s.style.display="none");
@@ -128,7 +135,7 @@ window.startThoughts=()=>{
       if(Math.abs(e.clientX-sx)>100){
         card.remove();
         count++;
-        stress-=8;
+        stress-=5;
         create();
       }else{
         card.style.transform="translateX(-50%)";
@@ -155,7 +162,7 @@ window.startRhythm=()=>{
   dots.forEach(d=>{
     d.onclick=()=>{
       if(parseInt(d.dataset.i)===target){
-        stress-=3;
+        stress-=2;
         next();
       }
     };
@@ -196,7 +203,7 @@ window.startKnife=()=>{
 
     knives--;
     document.getElementById("knifeLeft").innerText=knives;
-    stress-=4;
+    stress-=3;
 
     if(knives===0){
       document.getElementById("knife").innerHTML="<h3>You Win</h3>";
