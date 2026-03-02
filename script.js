@@ -72,73 +72,86 @@ function startBreathingActivity() {
   }, 8000);
 }
 
-/* ================= CAMERA ================= */
+/* ================= CAMERA + FACEMESH (FIXED) ================= */
 
-navigator.mediaDevices.getUserMedia({ video: true })
-  .then(stream => {
+async function initCameraAndFaceMesh() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "user" }
+    });
+
     videoElement.srcObject = stream;
-  })
-  .catch(() => {
-    instruction.innerText = "Camera access denied.";
+
+    videoElement.onloadedmetadata = () => {
+      videoElement.play();
+      instruction.innerText = "Camera active";
+      startFaceMesh();
+    };
+
+  } catch (error) {
+    instruction.innerText = "Camera error: " + error.message;
+    console.error("Camera error:", error);
+  }
+}
+
+function startFaceMesh() {
+
+  const faceMesh = new FaceMesh({
+    locateFile: file =>
+      `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
   });
 
-/* ================= FACE MESH ================= */
+  faceMesh.setOptions({
+    maxNumFaces: 1,
+    refineLandmarks: true,
+    minDetectionConfidence: 0.6,
+    minTrackingConfidence: 0.6
+  });
 
-const faceMesh = new FaceMesh({
-  locateFile: file =>
-    `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
-});
+  faceMesh.onResults(results => {
 
-faceMesh.setOptions({
-  maxNumFaces: 1,
-  refineLandmarks: true,
-  minDetectionConfidence: 0.6,
-  minTrackingConfidence: 0.6
-});
+    if (!results.multiFaceLandmarks.length) return;
 
-faceMesh.onResults(results => {
+    const landmarks = results.multiFaceLandmarks[0];
 
-  if (!results.multiFaceLandmarks.length) return;
+    // Blink detection
+    const leftEyeTop = landmarks[159];
+    const leftEyeBottom = landmarks[145];
+    const eyeDistance = Math.abs(leftEyeTop.y - leftEyeBottom.y);
 
-  const landmarks = results.multiFaceLandmarks[0];
-
-  // Blink detection
-  const leftEyeTop = landmarks[159];
-  const leftEyeBottom = landmarks[145];
-  const eyeDistance = Math.abs(leftEyeTop.y - leftEyeBottom.y);
-
-  if (eyeDistance < 0.01) {
-    const now = Date.now();
-    if (now - lastBlinkTime > 400) {
-      stressScore += 5;
-      lastBlinkTime = now;
+    if (eyeDistance < 0.01) {
+      const now = Date.now();
+      if (now - lastBlinkTime > 400) {
+        stressScore += 5;
+        lastBlinkTime = now;
+      }
     }
-  }
 
-  // Head shake detection
-  const nose = landmarks[1];
-  const currentX = nose.x;
+    // Head movement detection
+    const nose = landmarks[1];
+    const currentX = nose.x;
 
-  if (lastNoseX !== null) {
-    const movement = Math.abs(currentX - lastNoseX);
-    if (movement > 0.02) {
-      stressScore += 3;
+    if (lastNoseX !== null) {
+      const movement = Math.abs(currentX - lastNoseX);
+      if (movement > 0.02) stressScore += 3;
     }
-  }
 
-  lastNoseX = currentX;
+    lastNoseX = currentX;
 
-  stressScore -= 0.5;
+    stressScore -= 0.5;
 
-  updateStress();
-});
+    updateStress();
+  });
 
-const camera = new Camera(videoElement, {
-  onFrame: async () => {
-    await faceMesh.send({ image: videoElement });
-  },
-  width: 640,
-  height: 480
-});
+  const camera = new Camera(videoElement, {
+    onFrame: async () => {
+      await faceMesh.send({ image: videoElement });
+    },
+    width: 640,
+    height: 480
+  });
 
-camera.start();
+  camera.start();
+}
+
+initCameraAndFaceMesh();
