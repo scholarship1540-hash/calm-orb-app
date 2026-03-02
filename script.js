@@ -31,7 +31,7 @@ document.addEventListener("DOMContentLoaded", function () {
     stressText.innerText = "Stress Level: " + Math.round(stressScore) + "%";
 
     // 🔥 Trigger activity when stress > 40 (change to 70 if you want)
-    if (stressScore > 40 && !activityStarted) {
+    if (stressScore > 70 && !activityStarted) {
       activityStarted = true;
       speak("You are in high stress. Do activity now.");
       launchActivity();
@@ -172,3 +172,4 @@ document.addEventListener("DOMContentLoaded", function () {
   initCamera();
 
 });
+
