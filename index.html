@@ -4,7 +4,7 @@
   <title>Calm Orb</title>
   <link rel="stylesheet" href="style.css">
 
-  <!-- Face Detection Scripts -->
+  <!-- MediaPipe Face Detection -->
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/face_detection.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
 </head>
@@ -14,11 +14,11 @@
   <div class="container">
     <h1>Calm Orb</h1>
 
-    <!-- Camera (hidden) -->
-    <video id="camera" autoplay muted playsinline width="300" style="display:none;"></video>
+    <!-- Camera Preview (VISIBLE) -->
+    <video id="camera" autoplay muted playsinline width="300"></video>
 
     <div class="orb"></div>
-    <p>Press and hold the orb to breathe</p>
+    <p id="statusText">Press and hold the orb to breathe</p>
     <button id="panicBtn">🆘 I'm Overwhelmed</button>
   </div>
 
