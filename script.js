@@ -1,123 +1,163 @@
-const video = document.getElementById("camera");
-const stressText = document.getElementById("stressValue");
-const message = document.getElementById("message");
-const orb = document.querySelector(".orb");
+<script>
 
-let stress = 0;
-let lastState = "";
-let lastNoseX = null;
+/* ==================== GLOBAL STATE ==================== */
 
-/* VOICE */
-function speak(text){
-  if(!('speechSynthesis' in window)) return;
-  const speech = new SpeechSynthesisUtterance(text);
-  speech.rate = 0.9;
+let stressLevel = 40;
+let currentScreen = "home";
+
+/* ==================== VOICE SYSTEM ==================== */
+
+let voiceEnabled = false;
+
+document.body.addEventListener("click", () => {
+  if (!voiceEnabled) {
+    const unlock = new SpeechSynthesisUtterance("Voice activated");
+    window.speechSynthesis.speak(unlock);
+    voiceEnabled = true;
+  }
+}, { once: true });
+
+function speak(message) {
+  if (!voiceEnabled) return;
+
   window.speechSynthesis.cancel();
+  const speech = new SpeechSynthesisUtterance(message);
+  speech.rate = 0.9;
+  speech.pitch = 1;
+  speech.volume = 1;
   window.speechSynthesis.speak(speech);
 }
 
-document.addEventListener("click", function enable(){
-  window.speechSynthesis.resume();
-  document.removeEventListener("click", enable);
-});
+/* ==================== NAVIGATION ==================== */
 
-/* UPDATE UI */
-function updateUI(){
+function showScreen(screenId) {
+  document.querySelectorAll(".screen").forEach(s => s.classList.add("hidden"));
+  document.getElementById("screen-" + screenId).classList.remove("hidden");
+  currentScreen = screenId;
+}
 
-  if(stress < 0) stress = 0;
-  if(stress > 100) stress = 100;
+/* ==================== STRESS DISPLAY ==================== */
 
-  stressText.innerText = "Stress Level: " + Math.round(stress) + "%";
+const stressBar = document.getElementById("stress-bar");
+const stressLabel = document.getElementById("stress-label");
+const stressIndicator = document.getElementById("stress-indicator");
+const app = document.getElementById("app");
 
-  let state;
+function updateStressDisplay() {
 
-  if(stress > 70){
-    state = "high";
-    document.body.style.background="#2b0000";
-    message.innerText="High stress detected";
-    orb.style.transform="scale(1.3)";
+  stressIndicator.style.opacity = "1";
+  stressBar.style.width = stressLevel + "%";
+
+  if (stressLevel < 30) {
+    stressLabel.textContent = "Calm";
+    app.className = "calm-bg h-full w-full relative overflow-auto";
   }
-  else if(stress > 40){
-    state = "medium";
-    document.body.style.background="#1e293b";
-    message.innerText="Moderate stress";
-    orb.style.transform="scale(1.1)";
+  else if (stressLevel < 60) {
+    stressLabel.textContent = "Moderate";
+    app.className = "gradient-bg h-full w-full relative overflow-auto";
   }
-  else{
-    state = "low";
-    document.body.style.background="#0f172a";
-    message.innerText="Calm";
-    orb.style.transform="scale(1)";
+  else {
+    stressLabel.textContent = "High";
+    app.className = "stressed-bg h-full w-full relative overflow-auto";
   }
 
-  if(state !== lastState){
-    if(state==="high"){
-      speak("Your stress is high. Do a breathing exercise now.");
-    }
-    if(state==="medium"){
-      speak("Your stress is moderate. Slow your breathing.");
-    }
-    if(state==="low"){
-      speak("You are calm.");
-    }
-    lastState = state;
+  /* 🔥 HIGH STRESS AUTO TRIGGER */
+  if (stressLevel >= 70) {
+
+    speak("Your stress level is high. Let's do a grounding activity.");
+
+    showScreen("ground");
+
+    setTimeout(() => {
+      startRhythmGame();
+    }, 1000);
   }
 }
 
-/* CAMERA */
-async function startCamera(){
+/* ==================== HOLD STRESS DETECTION ==================== */
 
-  try{
-    const stream = await navigator.mediaDevices.getUserMedia({video:true});
-    video.srcObject = stream;
-  }catch(e){
-    message.innerText="Camera permission denied";
-    return;
-  }
+const detectionCircle = document.getElementById("detection-circle");
+let holdStart = 0;
 
-  const faceMesh = new FaceMesh({
-    locateFile: file =>
-    `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
-  });
+detectionCircle.addEventListener("mousedown", startHold);
+detectionCircle.addEventListener("mouseup", endHold);
+detectionCircle.addEventListener("touchstart", startHold);
+detectionCircle.addEventListener("touchend", endHold);
 
-  faceMesh.setOptions({
-    maxNumFaces:1,
-    refineLandmarks:true,
-    minDetectionConfidence:0.6,
-    minTrackingConfidence:0.6
-  });
-
-  faceMesh.onResults(results => {
-
-    if(!results.multiFaceLandmarks.length) return;
-
-    const landmarks = results.multiFaceLandmarks[0];
-    const nose = landmarks[1];
-    const currentX = nose.x;
-
-    if(lastNoseX !== null){
-      const movement = Math.abs(currentX - lastNoseX);
-      if(movement > 0.02){
-        stress += 5;
-      }
-    }
-
-    lastNoseX = currentX;
-
-    stress -= 0.5;
-    updateUI();
-  });
-
-  const camera = new Camera(video,{
-    onFrame: async ()=>{
-      await faceMesh.send({image:video});
-    },
-    width:640,
-    height:480
-  });
-
-  camera.start();
+function startHold(e) {
+  e.preventDefault();
+  holdStart = Date.now();
 }
 
-updateUI();
-startCamera();
+function endHold() {
+
+  let duration = Date.now() - holdStart;
+
+  if (duration < 500) {
+    stressLevel = Math.min(stressLevel + 15, 100);
+  }
+  else if (duration < 1500) {
+    stressLevel = Math.min(stressLevel + 5, 100);
+  }
+  else {
+    stressLevel = Math.max(stressLevel - 10, 0);
+  }
+
+  updateStressDisplay();
+}
+
+/* ==================== RHYTHM GAME ==================== */
+
+let rhythmActive = false;
+let rhythmScore = 0;
+let currentTarget = -1;
+let rhythmInterval = null;
+
+function startRhythmGame() {
+
+  rhythmActive = true;
+  rhythmScore = 0;
+
+  document.getElementById("rhythm-score").textContent = "0";
+  activateNextTarget();
+}
+
+function activateNextTarget() {
+
+  if (!rhythmActive) return;
+
+  if (currentTarget >= 0) {
+    document.getElementById("rhythm-" + currentTarget).classList.remove("active");
+  }
+
+  currentTarget = Math.floor(Math.random() * 6);
+
+  document.getElementById("rhythm-" + currentTarget).classList.add("active");
+
+  rhythmInterval = setTimeout(() => {
+    activateNextTarget();
+  }, 1500);
+}
+
+function tapRhythm(index) {
+
+  if (!rhythmActive) return;
+
+  if (index === currentTarget) {
+
+    rhythmScore++;
+    document.getElementById("rhythm-score").textContent = rhythmScore;
+
+    stressLevel = Math.max(stressLevel - 3, 0);
+    updateStressDisplay();
+
+    clearTimeout(rhythmInterval);
+    activateNextTarget();
+  }
+}
+
+/* ==================== INIT ==================== */
+
+updateStressDisplay();
+
+</script>
