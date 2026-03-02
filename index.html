@@ -13,11 +13,7 @@
 
 <div class="container" id="monitor">
   <h1>AI Stress Monitor</h1>
-
   <video id="camera" autoplay muted playsinline width="320"></video>
-
-  <div class="orb"></div>
-
   <h2 id="stressValue">Stress Level: 0%</h2>
   <p id="instruction">Initializing camera...</p>
 </div>
@@ -28,7 +24,8 @@
     <h1>Choose Activity</h1>
     <button onclick="startBreathing()">🧘 Breathing</button>
     <button onclick="startThoughts()">🧠 Release Thoughts</button>
-    <button onclick="startRhythm()">🎯 Grounding Rhythm</button>
+    <button onclick="startRhythm()">🎯 Rhythm Game</button>
+    <button onclick="startKnife()">🔪 Knife Hit</button>
   </div>
 
   <div id="breathingSection" style="display:none;">
@@ -38,23 +35,28 @@
   </div>
 
   <div id="thoughtSection" style="display:none;">
-    <h1>Release Your Thoughts</h1>
+    <h1>Release Thoughts</h1>
     <div id="thoughtContainer"></div>
     <h3>Released: <span id="releasedCount">0</span>/5</h3>
   </div>
 
   <div id="rhythmSection" style="display:none;">
-    <h1>Grounding Rhythm Game</h1>
-
+    <h1>Grounding Rhythm</h1>
     <div id="rhythmBoard">
       <div class="dot" data-id="0"></div>
       <div class="dot" data-id="1"></div>
       <div class="dot" data-id="2"></div>
       <div class="dot" data-id="3"></div>
     </div>
-
     <h3>Score: <span id="rhythmScore">0</span></h3>
-    <h3>Streak: <span id="rhythmStreak">0</span></h3>
+  </div>
+
+  <div id="knifeSection" style="display:none;">
+    <h1>Knife Hit</h1>
+    <div id="knifeGame">
+      <div id="wheel"></div>
+    </div>
+    <h3>Knives Left: <span id="knifeCount">10</span></h3>
   </div>
 
 </div>
