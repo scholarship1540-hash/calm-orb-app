@@ -1,13 +1,13 @@
 body {
   margin: 0;
-  background: #0f172a;
+  background-color: #0f172a;
   color: white;
   font-family: Arial, sans-serif;
   text-align: center;
 }
 
 .container {
-  margin-top: 100px;
+  margin-top: 30px;
 }
 
 .orb {
@@ -15,13 +15,22 @@ body {
   height: 150px;
   background: #3b82f6;
   border-radius: 50%;
-  margin: 40px auto;
-  transition: transform 4s ease-in-out;
+  margin: 20px auto;
+  transition: transform 2s ease-in-out;
 }
 
-.orb.breathe {
-  transform: scale(1.5);
+#camera {
+  margin-top: 15px;
+  border-radius: 10px;
+  border: 2px solid #3b82f6;
 }
+
+#stressLevelDisplay {
+  margin-top: 10px;
+  font-size: 22px;
+  font-weight: bold;
+}
+
 #panicBtn {
   margin-top: 20px;
   padding: 10px 20px;
