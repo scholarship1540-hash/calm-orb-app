@@ -36,7 +36,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (stressScore > 70 && !activityStarted) {
       activityStarted = true;
-      speak("You are in high stress. Release your thoughts now.");
+      speak("You are in high stress. Choose an activity.");
       launchActivity();
     }
   }
@@ -50,28 +50,58 @@ document.addEventListener("DOMContentLoaded", function () {
 
     monitorSection.style.display = "none";
     activitySection.style.display = "block";
-
-    startThoughtRelease();
   }
 
-  function startThoughtRelease() {
+  /* ================= BREATHING ================= */
+
+  window.startBreathing = function () {
+
+    document.getElementById("activityMenu").style.display = "none";
+    document.getElementById("breathingSection").style.display = "block";
+
+    const circle = document.querySelector(".breathing-circle");
+    const text = document.getElementById("breathingText");
+
+    setInterval(() => {
+
+      circle.style.transform = "scale(1.5)";
+      text.innerText = "Breathe In...";
+      speak("Breathe in");
+
+      setTimeout(() => {
+        circle.style.transform = "scale(1)";
+        text.innerText = "Breathe Out...";
+        speak("Breathe out");
+      }, 4000);
+
+    }, 8000);
+  };
+
+  /* ================= THOUGHT RELEASE ================= */
+
+  window.startThoughts = function () {
+
+    document.getElementById("activityMenu").style.display = "none";
+    document.getElementById("thoughtSection").style.display = "block";
+
     releasedCount = 0;
     document.getElementById("releasedCount").innerText = 0;
+
     createThoughtCard();
-  }
+  };
 
   function createThoughtCard() {
 
+    if (releasedCount >= 5) {
+      document.getElementById("thoughtSection").innerHTML =
+        "<h1>✨ Well Done</h1><p>You released your thoughts.</p>";
+      return;
+    }
+
     const container = document.getElementById("thoughtContainer");
-    const counterEl = document.getElementById("releasedCount");
-
-    if (thoughts.length === 0) return;
-
-    const text = thoughts.shift();
-
     const card = document.createElement("div");
     card.className = "thoughtCard";
-    card.innerText = text;
+    card.innerText = thoughts[Math.floor(Math.random()*thoughts.length)];
 
     let startX = 0;
 
@@ -91,21 +121,11 @@ document.addEventListener("DOMContentLoaded", function () {
       const diff = e.clientX - startX;
 
       if (Math.abs(diff) > 100) {
-
         card.remove();
         releasedCount++;
-        counterEl.innerText = releasedCount;
-
+        document.getElementById("releasedCount").innerText = releasedCount;
         stressScore -= 15;
-
-        createParticles(container);
-
-        if (releasedCount >= 5) {
-          showCompletion();
-        } else {
-          createThoughtCard();
-        }
-
+        createThoughtCard();
       } else {
         card.style.transform = "translateX(-50%)";
       }
@@ -114,37 +134,7 @@ document.addEventListener("DOMContentLoaded", function () {
     container.appendChild(card);
   }
 
-  function createParticles(container) {
-    for (let i = 0; i < 12; i++) {
-
-      const p = document.createElement("div");
-      p.style.position = "absolute";
-      p.style.width = "6px";
-      p.style.height = "6px";
-      p.style.background = "#22d3ee";
-      p.style.borderRadius = "50%";
-      p.style.left = "50%";
-      p.style.top = "150px";
-
-      const angle = Math.random() * 360;
-      const distance = Math.random() * 120;
-
-      p.animate([
-        { transform: "translate(0,0)", opacity: 1 },
-        { transform: `translate(${Math.cos(angle)*distance}px, ${Math.sin(angle)*distance}px)`, opacity: 0 }
-      ], { duration: 800 });
-
-      container.appendChild(p);
-      setTimeout(() => p.remove(), 800);
-    }
-  }
-
-  function showCompletion() {
-    activitySection.innerHTML = `
-      <h1>✨ Well Done</h1>
-      <p>You released your thoughts successfully.</p>
-    `;
-  }
+  /* ================= CAMERA ================= */
 
   async function initCamera() {
     try {
@@ -158,7 +148,7 @@ document.addEventListener("DOMContentLoaded", function () {
         startFaceMesh();
       };
 
-    } catch (err) {
+    } catch {
       instruction.innerText = "Camera denied";
     }
   }
@@ -171,8 +161,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     faceMesh.setOptions({
-      maxNumFaces: 1,
-      refineLandmarks: false
+      maxNumFaces: 1
     });
 
     faceMesh.onResults(results => {
@@ -215,5 +204,4 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   initCamera();
-
 });
