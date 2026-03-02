@@ -61,7 +61,7 @@ function startFace(){
 
     lastX=l[1].x;
 
-    stress-=0.01; // slower decrease
+    stress-=0.01;
 
     updateStress();
   });
@@ -71,7 +71,7 @@ function startFace(){
   }).start();
 }
 
-/* SECTION CONTROL */
+/* MENU CONTROL */
 window.goBackMenu=()=>{
   document.querySelectorAll(".section")
   .forEach(s=>s.style.display="none");
