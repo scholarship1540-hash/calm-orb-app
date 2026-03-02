@@ -20,20 +20,18 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function updateStress() {
-    if (stressScore > 100) stressScore = 100;
-    if (stressScore < 0) stressScore = 0;
+  if (stressScore > 100) stressScore = 100;
+  if (stressScore < 0) stressScore = 0;
 
-    stressText.innerText = "Stress Level: " + Math.round(stressScore) + "%";
+  stressText.innerText = "Stress Level: " + Math.round(stressScore) + "%";
 
-    // 🔥 TRIGGER ACTIVITY
-    if (stressScore > 70 && !activityStarted) {
-      activityStarted = true;
-
-      speak("You are in high stress. Do activity now.");
-
-      launchActivity();
-    }
+  // FORCE ACTIVITY AT 40 FOR TEST
+  if (stressScore > 40 && !activityStarted) {
+    activityStarted = true;
+    speak("You are in high stress. Do activity now.");
+    launchActivity();
   }
+}
 
   function launchActivity() {
 
@@ -153,3 +151,4 @@ document.addEventListener("DOMContentLoaded", function () {
   initCamera();
 
 });
+
