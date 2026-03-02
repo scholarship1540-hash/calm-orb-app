@@ -2,27 +2,203 @@
 <html>
 <head>
   <title>AI Stress Monitor</title>
-  <link rel="stylesheet" href="style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body{
+      font-family: Arial;
+      text-align:center;
+      background:#111;
+      color:white;
+    }
+    video{
+      width:400px;
+      border-radius:10px;
+      margin:15px 0;
+    }
+    .hidden{ display:none; }
+    button{
+      padding:10px 20px;
+      margin:10px;
+      cursor:pointer;
+    }
+    #stressBar{
+      width:300px;
+      height:20px;
+      background:#333;
+      margin:auto;
+      border-radius:10px;
+      overflow:hidden;
+    }
+    #stressFill{
+      height:100%;
+      width:0%;
+      background:linear-gradient(to right,green,yellow,red);
+      transition:0.5s;
+    }
+  </style>
 </head>
-
 <body>
 
-  <h1>AI Stress Monitor</h1>
+<h1>AI Stress Monitor</h1>
 
-  <!-- CAMERA -->
-  <video id="camera" autoplay playsinline></video>
+<!-- CAMERA -->
+<video id="camera" autoplay playsinline></video>
 
-  <!-- STRESS DISPLAY -->
-  <h2>Stress Level: <span id="stressValue">40</span>%</h2>
+<h2>Stress Level: <span id="stressText">0%</span></h2>
 
-  <button id="increaseBtn">Increase Stress</button>
+<div id="stressBar">
+  <div id="stressFill"></div>
+</div>
 
-  <!-- ACTIVITY -->
-  <div id="activity">
-    <h2>Breathing Activity</h2>
+<br>
+<button onclick="simulateStress()">Simulate Stress</button>
+
+<hr>
+
+<!-- ACTIVITIES -->
+<div id="activities" class="hidden">
+
+  <h2>Activity</h2>
+
+  <div id="breathe" class="hidden">
+    <h3>Breathing Exercise</h3>
     <p id="breathText">Inhale...</p>
   </div>
 
-  <script src="script.js"></script>
+  <div id="ground" class="hidden">
+    <h3>Grounding Game</h3>
+    <p>Tap the glowing box</p>
+    <button onclick="increaseScore()">Tap</button>
+    <p>Score: <span id="score">0</span></p>
+  </div>
+
+</div>
+
+<script>
+
+/* ================= CAMERA ================= */
+
+const video = document.getElementById("camera");
+
+async function startCamera(){
+  try{
+    const stream = await navigator.mediaDevices.getUserMedia({ video:true });
+    video.srcObject = stream;
+  }catch(err){
+    alert("Camera permission denied or not supported.");
+    console.log(err);
+  }
+}
+
+startCamera();
+
+
+/* ================= STRESS SYSTEM ================= */
+
+let stress = 0;
+let voiceUnlocked = false;
+let highTriggered = false;
+
+const stressText = document.getElementById("stressText");
+const stressFill = document.getElementById("stressFill");
+
+function updateStress(){
+  stressText.innerText = stress + "%";
+  stressFill.style.width = stress + "%";
+
+  if(stress >= 70 && !highTriggered){
+    highTriggered = true;
+    speak("Your stress is high. Please do this activity to reduce stress.");
+    showRandomActivity();
+  }
+
+  if(stress < 60){
+    highTriggered = false;
+  }
+}
+
+// Auto increase stress slowly
+setInterval(()=>{
+  if(stress < 100){
+    stress += 1;
+    updateStress();
+  }
+},5000);
+
+// Manual simulate
+function simulateStress(){
+  stress += 10;
+  if(stress>100) stress=100;
+  updateStress();
+}
+
+
+/* ================= VOICE ================= */
+
+document.body.addEventListener("click",()=>{
+  if(!voiceUnlocked){
+    speechSynthesis.speak(new SpeechSynthesisUtterance("System Ready"));
+    voiceUnlocked = true;
+  }
+},{once:true});
+
+function speak(text){
+  if(!voiceUnlocked) return;
+  speechSynthesis.cancel();
+  const msg = new SpeechSynthesisUtterance(text);
+  msg.rate = 0.9;
+  speechSynthesis.speak(msg);
+}
+
+
+/* ================= ACTIVITIES ================= */
+
+function showRandomActivity(){
+  document.getElementById("activities").classList.remove("hidden");
+
+  const activities = ["breathe","ground"];
+  const random = activities[Math.floor(Math.random()*activities.length)];
+
+  document.getElementById("breathe").classList.add("hidden");
+  document.getElementById("ground").classList.add("hidden");
+
+  document.getElementById(random).classList.remove("hidden");
+
+  if(random === "breathe"){
+    startBreathing();
+  }
+}
+
+
+/* ================= BREATHING ================= */
+
+function startBreathing(){
+  let inhale = true;
+  setInterval(()=>{
+    document.getElementById("breathText").innerText = inhale ? "Inhale..." : "Exhale...";
+    inhale = !inhale;
+
+    stress -= 5;
+    if(stress<0) stress=0;
+    updateStress();
+
+  },4000);
+}
+
+
+/* ================= GROUND GAME ================= */
+
+let score = 0;
+function increaseScore(){
+  score++;
+  document.getElementById("score").innerText = score;
+
+  stress -= 3;
+  if(stress<0) stress=0;
+  updateStress();
+}
+
+</script>
+
 </body>
 </html>
