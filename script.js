@@ -4,10 +4,13 @@ document.addEventListener("DOMContentLoaded", function () {
   const stressText = document.getElementById("stressValue");
   const instruction = document.getElementById("instruction");
 
+  const monitorSection = document.getElementById("monitor");
+  const activitySection = document.getElementById("activity");
+
   let stressScore = 20;
   let lastBlinkTime = 0;
   let lastNoseX = null;
-  let highStressSpoken = false;
+  let activityStarted = false;
 
   function speak(message) {
     const speech = new SpeechSynthesisUtterance(message);
@@ -22,14 +25,51 @@ document.addEventListener("DOMContentLoaded", function () {
 
     stressText.innerText = "Stress Level: " + Math.round(stressScore) + "%";
 
-    if (stressScore > 70 && !highStressSpoken) {
+    // 🔥 TRIGGER ACTIVITY
+    if (stressScore > 70 && !activityStarted) {
+      activityStarted = true;
+
       speak("You are in high stress. Do activity now.");
-      highStressSpoken = true;
+
+      launchActivity();
+    }
+  }
+
+  function launchActivity() {
+
+    // Stop camera
+    const stream = videoElement.srcObject;
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
     }
 
-    if (stressScore < 60) {
-      highStressSpoken = false;
-    }
+    // Hide monitor
+    monitorSection.style.display = "none";
+
+    // Show activity
+    activitySection.style.display = "block";
+
+    startBreathing();
+  }
+
+  function startBreathing() {
+
+    const circle = document.querySelector(".breathing-circle");
+    const text = document.getElementById("activityText");
+
+    setInterval(() => {
+
+      circle.style.transform = "scale(1.5)";
+      text.innerText = "Breathe In...";
+      speak("Breathe in");
+
+      setTimeout(() => {
+        circle.style.transform = "scale(1)";
+        text.innerText = "Breathe Out...";
+        speak("Breathe out");
+      }, 4000);
+
+    }, 8000);
   }
 
   async function initCamera() {
@@ -47,32 +87,31 @@ document.addEventListener("DOMContentLoaded", function () {
       };
 
     } catch (error) {
-      instruction.innerText = "Camera access denied";
-      console.error(error);
+      instruction.innerText = "Camera denied";
     }
   }
 
   function startFaceMesh() {
 
     const faceMesh = new FaceMesh({
-      locateFile: (file) =>
+      locateFile: file =>
         `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
     });
 
     faceMesh.setOptions({
       maxNumFaces: 1,
-      refineLandmarks: false,   // 🔥 IMPORTANT CHANGE
+      refineLandmarks: false,
       minDetectionConfidence: 0.5,
       minTrackingConfidence: 0.5
     });
 
-    faceMesh.onResults((results) => {
+    faceMesh.onResults(results => {
 
       if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) return;
 
       const landmarks = results.multiFaceLandmarks[0];
 
-      // Blink detection
+      // Blink
       const leftEyeTop = landmarks[159];
       const leftEyeBottom = landmarks[145];
       const eyeDistance = Math.abs(leftEyeTop.y - leftEyeBottom.y);
@@ -85,19 +124,18 @@ document.addEventListener("DOMContentLoaded", function () {
         }
       }
 
-      // Head shake detection
+      // Head shake
       const nose = landmarks[1];
       const currentX = nose.x;
 
       if (lastNoseX !== null) {
         const movement = Math.abs(currentX - lastNoseX);
-        if (movement > 0.02) {
-          stressScore += 3;
-        }
+        if (movement > 0.02) stressScore += 3;
       }
 
       lastNoseX = currentX;
 
+      // Calm reduction
       stressScore -= 0.5;
 
       updateStress();
