@@ -1,0 +1,24 @@
+body {
+  margin: 0;
+  background: #0f172a;
+  color: white;
+  font-family: Arial, sans-serif;
+  text-align: center;
+}
+
+.container {
+  margin-top: 100px;
+}
+
+.orb {
+  width: 150px;
+  height: 150px;
+  background: #3b82f6;
+  border-radius: 50%;
+  margin: 40px auto;
+  transition: transform 4s ease-in-out;
+}
+
+.orb.breathe {
+  transform: scale(1.5);
+}
