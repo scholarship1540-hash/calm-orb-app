@@ -1,203 +1,123 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Smart Stress Monitor</title>
+const video = document.getElementById("camera");
+const stressText = document.getElementById("stressValue");
+const message = document.getElementById("message");
+const orb = document.querySelector(".orb");
 
-<script src="https://cdn.tailwindcss.com"></script>
+let stress = 0;
+let lastState = "";
+let lastNoseX = null;
 
-<style>
-body {
-  margin:0;
-  font-family: Arial, sans-serif;
-  background: linear-gradient(135deg,#1a1a2e,#16213e,#0f3460);
-  color:white;
-  text-align:center;
-  overflow:hidden;
-  transition: background 1s ease;
-}
-
-.stressed-bg {
-  background: linear-gradient(135deg,#3a0f2d,#1e1e3f,#0f2847);
-}
-
-.calm-bg {
-  background: linear-gradient(135deg,#0d2137,#0a2e4a,#063b5c);
-}
-
-#circle {
-  width:200px;
-  height:200px;
-  border-radius:50%;
-  border:3px solid rgba(255,255,255,0.2);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  margin:40px auto;
-  cursor:pointer;
-  transition: all .3s ease;
-}
-
-#stressBarContainer {
-  width:250px;
-  height:10px;
-  background:rgba(255,255,255,0.2);
-  margin:20px auto;
-  border-radius:20px;
-  overflow:hidden;
-}
-
-#stressBar {
-  height:100%;
-  width:0%;
-  background: linear-gradient(to right,green,yellow,red);
-  transition: width .5s ease;
-}
-</style>
-</head>
-
-<body>
-
-<h1 class="text-3xl mt-8">Smart Stress Monitor</h1>
-<p id="instruction">Press and hold the circle</p>
-
-<div id="circle">HOLD</div>
-
-<div id="stressBarContainer">
-  <div id="stressBar"></div>
-</div>
-
-<h2 id="stressLabel">Stress Level: 0%</h2>
-
-<script>
-
-/* ============================
-   VOICE SYSTEM
-============================ */
-
-function speak(message) {
-  if (!('speechSynthesis' in window)) return;
-
-  const speech = new SpeechSynthesisUtterance(message);
+/* VOICE */
+function speak(text){
+  if(!('speechSynthesis' in window)) return;
+  const speech = new SpeechSynthesisUtterance(text);
   speech.rate = 0.9;
-  speech.pitch = 1;
-  speech.volume = 1;
-
   window.speechSynthesis.cancel();
   window.speechSynthesis.speak(speech);
 }
 
-// Enable audio after first click
-document.addEventListener("click", function enableAudio(){
+document.addEventListener("click", function enable(){
   window.speechSynthesis.resume();
-  document.removeEventListener("click", enableAudio);
+  document.removeEventListener("click", enable);
 });
 
-/* ============================
-   STRESS LOGIC
-============================ */
+/* UPDATE UI */
+function updateUI(){
 
-let stressLevel = 40;
-let holdStart = 0;
-let holdTimer = null;
-let lastSpokenState = "";
+  if(stress < 0) stress = 0;
+  if(stress > 100) stress = 100;
 
-const circle = document.getElementById("circle");
-const stressBar = document.getElementById("stressBar");
-const stressLabel = document.getElementById("stressLabel");
-const instruction = document.getElementById("instruction");
+  stressText.innerText = "Stress Level: " + Math.round(stress) + "%";
 
-function updateStressDisplay() {
+  let state;
 
-  if (stressLevel < 0) stressLevel = 0;
-  if (stressLevel > 100) stressLevel = 100;
-
-  stressBar.style.width = stressLevel + "%";
-  stressLabel.innerText = "Stress Level: " + stressLevel + "%";
-
-  let state = "";
-
-  if (stressLevel < 30) {
-    document.body.className = "calm-bg";
-    state = "low";
-  } 
-  else if (stressLevel < 60) {
-    document.body.className = "";
-    state = "medium";
-  } 
-  else {
-    document.body.className = "stressed-bg";
+  if(stress > 70){
     state = "high";
+    document.body.style.background="#2b0000";
+    message.innerText="High stress detected";
+    orb.style.transform="scale(1.3)";
   }
-
-  handleVoiceFeedback(state);
-}
-
-function handleVoiceFeedback(state) {
-
-  if (state === lastSpokenState) return;
-
-  if (state === "high") {
-    speak("Your stress is high. Do a breathing exercise to reduce stress.");
-  }
-  else if (state === "medium") {
-    speak("Your stress is moderate. Try releasing your thoughts.");
-  }
-  else {
-    speak("You are calm. Keep maintaining your balance.");
-  }
-
-  lastSpokenState = state;
-}
-
-/* ============================
-   HOLD DETECTION
-============================ */
-
-circle.addEventListener("mousedown", startHold);
-circle.addEventListener("touchstart", startHold);
-
-circle.addEventListener("mouseup", endHold);
-circle.addEventListener("mouseleave", endHold);
-circle.addEventListener("touchend", endHold);
-
-function startHold(e){
-  e.preventDefault();
-  holdStart = Date.now();
-
-  holdTimer = setInterval(()=>{
-    circle.style.transform = "scale(0.95)";
-  },50);
-}
-
-function endHold(){
-
-  clearInterval(holdTimer);
-  circle.style.transform = "scale(1)";
-
-  let duration = Date.now() - holdStart;
-
-  if (duration < 500){
-    stressLevel += 15;
-  }
-  else if (duration < 1500){
-    stressLevel += 5;
+  else if(stress > 40){
+    state = "medium";
+    document.body.style.background="#1e293b";
+    message.innerText="Moderate stress";
+    orb.style.transform="scale(1.1)";
   }
   else{
-    stressLevel -= 15;
+    state = "low";
+    document.body.style.background="#0f172a";
+    message.innerText="Calm";
+    orb.style.transform="scale(1)";
   }
 
-  updateStressDisplay();
+  if(state !== lastState){
+    if(state==="high"){
+      speak("Your stress is high. Do a breathing exercise now.");
+    }
+    if(state==="medium"){
+      speak("Your stress is moderate. Slow your breathing.");
+    }
+    if(state==="low"){
+      speak("You are calm.");
+    }
+    lastState = state;
+  }
 }
 
-/* ============================
-   INIT
-============================ */
+/* CAMERA */
+async function startCamera(){
 
-updateStressDisplay();
+  try{
+    const stream = await navigator.mediaDevices.getUserMedia({video:true});
+    video.srcObject = stream;
+  }catch(e){
+    message.innerText="Camera permission denied";
+    return;
+  }
 
-</script>
+  const faceMesh = new FaceMesh({
+    locateFile: file =>
+    `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
+  });
 
-</body>
-</html>
+  faceMesh.setOptions({
+    maxNumFaces:1,
+    refineLandmarks:true,
+    minDetectionConfidence:0.6,
+    minTrackingConfidence:0.6
+  });
+
+  faceMesh.onResults(results => {
+
+    if(!results.multiFaceLandmarks.length) return;
+
+    const landmarks = results.multiFaceLandmarks[0];
+    const nose = landmarks[1];
+    const currentX = nose.x;
+
+    if(lastNoseX !== null){
+      const movement = Math.abs(currentX - lastNoseX);
+      if(movement > 0.02){
+        stress += 5;
+      }
+    }
+
+    lastNoseX = currentX;
+
+    stress -= 0.5;
+    updateUI();
+  });
+
+  const camera = new Camera(video,{
+    onFrame: async ()=>{
+      await faceMesh.send({image:video});
+    },
+    width:640,
+    height:480
+  });
+
+  camera.start();
+}
+
+updateUI();
+startCamera();
