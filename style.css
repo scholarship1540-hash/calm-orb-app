@@ -28,11 +28,25 @@ body {
   font-weight: bold;
 }
 
-.breathing-circle {
-  width: 200px;
-  height: 200px;
-  background: #22d3ee;
-  border-radius: 50%;
-  margin: 40px auto;
-  transition: transform 4s ease-in-out;
+/* Activity */
+
+#thoughtContainer {
+  position: relative;
+  height: 300px;
+  margin-top: 40px;
+}
+
+.thoughtCard {
+  position: absolute;
+  left: 50%;
+  top: 50px;
+  transform: translateX(-50%);
+  padding: 20px;
+  width: 250px;
+  background: #1e293b;
+  border-radius: 12px;
+  cursor: grab;
+  user-select: none;
+  text-align: center;
+  font-size: 18px;
 }
