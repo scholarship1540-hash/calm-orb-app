@@ -1,15 +1,14 @@
 const orb = document.querySelector(".orb");
-const text = document.querySelector("p");
+const text = document.getElementById("statusText");
 const panicBtn = document.getElementById("panicBtn");
 const videoElement = document.getElementById("camera");
 
 let tapTimes = [];
 let stressLevel = "low";
 let breathingInterval = null;
+let lastFaceX = null;
 
-/* =========================
-   VOICE FUNCTION
-========================= */
+/* ================= VOICE ================= */
 
 function speak(message) {
   const speech = new SpeechSynthesisUtterance(message);
@@ -21,63 +20,7 @@ function speak(message) {
   window.speechSynthesis.speak(speech);
 }
 
-/* =========================
-   TAP STRESS DETECTION
-========================= */
-
-document.body.addEventListener("click", (event) => {
-  if (stressLevel === "panic") return;
-
-  const now = Date.now();
-  tapTimes.push(now);
-
-  if (tapTimes.length > 5) {
-    tapTimes.shift();
-  }
-
-  detectStress();
-});
-
-function detectStress() {
-  if (tapTimes.length < 2) return;
-
-  const interval =
-    tapTimes[tapTimes.length - 1] -
-    tapTimes[tapTimes.length - 2];
-
-  if (interval < 600) {
-    stressLevel = "high";
-  } else if (interval < 1200) {
-    stressLevel = "medium";
-  } else {
-    stressLevel = "low";
-  }
-
-  applyIntervention();
-}
-
-function applyIntervention() {
-  clearInterval(breathingInterval);
-
-  if (stressLevel === "high") {
-    document.body.style.backgroundColor = "#2b0000";
-    text.innerText = "High stress detected. Slow down with me.";
-    speak("High stress detected. You are safe. Slow your breathing.");
-    startBreathing(2000);
-  } 
-  else if (stressLevel === "medium") {
-    document.body.style.backgroundColor = "#1e293b";
-    text.innerText = "Let’s regulate together.";
-    speak("Let us regulate together.");
-    startBreathing(3000);
-  } 
-  else {
-    document.body.style.backgroundColor = "#0f172a";
-    text.innerText = "Nice and steady.";
-    speak("Nice and steady.");
-    startBreathing(4000);
-  }
-}
+/* ================= BREATHING ================= */
 
 function startBreathing(speed) {
   clearInterval(breathingInterval);
@@ -96,55 +39,108 @@ function startBreathing(speed) {
   }, speed);
 }
 
-/* =========================
-   PANIC MODE
-========================= */
+/* ================= TAP DETECTION ================= */
+
+document.body.addEventListener("click", (event) => {
+  if (stressLevel === "panic") return;
+
+  const now = Date.now();
+  tapTimes.push(now);
+
+  if (tapTimes.length > 5) tapTimes.shift();
+
+  if (tapTimes.length < 2) return;
+
+  const interval =
+    tapTimes[tapTimes.length - 1] -
+    tapTimes[tapTimes.length - 2];
+
+  if (interval < 600) stressLevel = "high";
+  else if (interval < 1200) stressLevel = "medium";
+  else stressLevel = "low";
+
+  applyIntervention();
+});
+
+function applyIntervention() {
+  clearInterval(breathingInterval);
+
+  if (stressLevel === "high") {
+    document.body.style.backgroundColor = "#2b0000";
+    text.innerText = "High stress detected.";
+    speak("High stress detected. You are safe.");
+    startBreathing(2000);
+  }
+  else if (stressLevel === "medium") {
+    document.body.style.backgroundColor = "#1e293b";
+    text.innerText = "Let’s regulate together.";
+    speak("Let us regulate together.");
+    startBreathing(3000);
+  }
+  else {
+    document.body.style.backgroundColor = "#0f172a";
+    text.innerText = "Nice and steady.";
+    speak("Nice and steady.");
+    startBreathing(4000);
+  }
+}
+
+/* ================= PANIC MODE ================= */
 
 panicBtn.addEventListener("click", function (event) {
   event.stopPropagation();
-
-  clearInterval(breathingInterval);
   stressLevel = "panic";
 
   document.body.style.backgroundColor = "#000000";
-  text.innerText = "Panic reset activated. Follow the slow rhythm.";
+  text.innerText = "Panic reset activated.";
+  speak("Panic reset activated. You are safe.");
 
-  speak("Panic reset activated. You are safe. Follow the slow rhythm.");
   startBreathing(5000);
 });
 
-/* =========================
-   FACE DETECTION
-========================= */
+/* ================= CAMERA ================= */
 
 navigator.mediaDevices.getUserMedia({ video: true })
   .then(stream => {
     videoElement.srcObject = stream;
   })
   .catch(err => {
-    console.log("Camera access denied:", err);
+    console.log("Camera denied:", err);
   });
 
 const faceDetection = new FaceDetection({
-  locateFile: (file) => {
-    return `https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/${file}`;
-  }
+  locateFile: (file) =>
+    `https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/${file}`
 });
 
 faceDetection.setOptions({
-  model: 'short',
+  model: "short",
   minDetectionConfidence: 0.6
 });
 
 faceDetection.onResults(results => {
+
   if (results.detections.length > 0 && stressLevel !== "panic") {
-    stressLevel = "face";
 
-    document.body.style.backgroundColor = "#111827";
-    text.innerText = "Face detected. Let’s stay calm.";
-    speak("Face detected. You are safe. Let's stay calm.");
+    const box = results.detections[0].boundingBox;
+    const currentX = box.xCenter;
 
-    startBreathing(3500);
+    if (lastFaceX !== null) {
+      let movement = Math.abs(currentX - lastFaceX);
+
+      if (movement > 0.05) {
+        stressLevel = "high";
+        document.body.style.backgroundColor = "#2b0000";
+        text.innerText = "Agitated head movement detected.";
+        speak("Agitated movement detected.");
+        startBreathing(2000);
+      } else {
+        document.body.style.backgroundColor = "#111827";
+        text.innerText = "Face detected. Staying calm.";
+      }
+    }
+
+    lastFaceX = currentX;
   }
 });
 
@@ -158,22 +154,7 @@ const camera = new Camera(videoElement, {
 
 camera.start();
 
-/* =========================
-   ACCELEROMETER DETECTION
-========================= */
-
-// iOS permission request
-if (typeof DeviceMotionEvent !== "undefined" &&
-    typeof DeviceMotionEvent.requestPermission === "function") {
-
-  DeviceMotionEvent.requestPermission()
-    .then(permissionState => {
-      if (permissionState === "granted") {
-        console.log("Motion permission granted");
-      }
-    })
-    .catch(console.error);
-}
+/* ================= ACCELEROMETER ================= */
 
 let shakeThreshold = 15;
 let lastX = null;
@@ -194,11 +175,9 @@ window.addEventListener("devicemotion", function(event) {
 
     if (delta > shakeThreshold && stressLevel !== "panic") {
       stressLevel = "high";
-
       document.body.style.backgroundColor = "#2b0000";
-      text.innerText = "Agitated movement detected. Slow down.";
-      speak("Agitated movement detected. You are safe. Slow your breathing.");
-
+      text.innerText = "Agitated movement detected.";
+      speak("Agitated movement detected.");
       startBreathing(2000);
     }
   }
@@ -206,5 +185,4 @@ window.addEventListener("devicemotion", function(event) {
   lastX = x;
   lastY = y;
   lastZ = z;
-
 });
