@@ -6,6 +6,7 @@ const orb = document.querySelector(".orb");
 let stressScore = 0;
 let lastNoseX = null;
 let breathingInterval = null;
+let lastStressState = "";
 
 /* ================= VOICE ================= */
 
@@ -20,7 +21,7 @@ function speak(message) {
   window.speechSynthesis.speak(speech);
 }
 
-// unlock voice after first click
+// Unlock audio after first click
 document.addEventListener("click", function enableAudio() {
   window.speechSynthesis.resume();
   document.removeEventListener("click", enableAudio);
@@ -48,29 +49,48 @@ function updateStress() {
 
   stressText.innerText = "Stress Level: " + Math.round(stressScore) + "%";
 
+  let currentState = "";
+
   if (stressScore > 70) {
+    currentState = "high";
     document.body.style.backgroundColor = "#2b0000";
     instruction.innerText = "High stress detected.";
-    speak("You are in high stress. Breathe slowly.");
     startBreathing(2000);
   }
   else if (stressScore > 40) {
+    currentState = "medium";
     document.body.style.backgroundColor = "#1e293b";
     instruction.innerText = "Moderate stress.";
-    speak("Moderate stress detected. Regulate your breathing.");
     startBreathing(3000);
   }
   else {
+    currentState = "low";
     document.body.style.backgroundColor = "#0f172a";
     instruction.innerText = "Low stress. You are calm.";
-    speak("You are calm.");
     startBreathing(4000);
+  }
+
+  // Speak only when stress level changes
+  if (currentState !== lastStressState) {
+
+    if (currentState === "high") {
+      speak("You are in high stress. Keep breathing slowly.");
+    }
+    else if (currentState === "medium") {
+      speak("Moderate stress detected. Regulate your breathing.");
+    }
+    else {
+      speak("You are calm.");
+    }
+
+    lastStressState = currentState;
   }
 }
 
-/* ================= CAMERA SAFE INIT ================= */
+/* ================= CAMERA INITIALIZATION ================= */
 
 async function initCamera() {
+
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ video: true });
     videoElement.srcObject = stream;
@@ -96,7 +116,6 @@ async function initCamera() {
     if (!results.multiFaceLandmarks.length) return;
 
     const landmarks = results.multiFaceLandmarks[0];
-
     const nose = landmarks[1];
     const currentX = nose.x;
 
@@ -104,13 +123,13 @@ async function initCamera() {
       const movement = Math.abs(currentX - lastNoseX);
 
       if (movement > 0.02) {
-        stressScore += 3;
+        stressScore += 4;
       }
     }
 
     lastNoseX = currentX;
 
-    // natural calming
+    // natural calming decay
     stressScore -= 0.5;
 
     updateStress();
@@ -127,8 +146,8 @@ async function initCamera() {
   camera.start();
 }
 
-/* ================= START ================= */
+/* ================= START SYSTEM ================= */
 
-startBreathing(4000);   // default calm breathing
-updateStress();         // initialize display
-initCamera();           // start camera safely
+startBreathing(4000);
+updateStress();
+initCamera();
