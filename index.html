@@ -1,101 +1,28 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>AI Stress Monitor</title>
-<style>
-body {
-  background: black;
-  color: white;
-  text-align: center;
-  font-family: Arial;
-}
-#game {
-  display: none;
-  margin-top: 30px;
-}
-button {
-  padding: 10px 20px;
-  margin-top: 10px;
-  font-size: 16px;
-}
-</style>
+  <title>AI Stress Monitor</title>
+  <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
 
-<h1>AI Stress Monitor</h1>
+  <h1>AI Stress Monitor</h1>
 
-<h2>Stress Level: <span id="stress">40</span>%</h2>
+  <!-- CAMERA -->
+  <video id="camera" autoplay playsinline></video>
 
-<button onclick="increaseStress()">Increase Stress</button>
+  <!-- STRESS DISPLAY -->
+  <h2>Stress Level: <span id="stressValue">40</span>%</h2>
 
-<div id="game">
-  <h2>Breathing Activity</h2>
-  <p id="activityText">Inhale...</p>
-</div>
+  <button id="increaseBtn">Increase Stress</button>
 
-<script>
+  <!-- ACTIVITY -->
+  <div id="activity">
+    <h2>Breathing Activity</h2>
+    <p id="breathText">Inhale...</p>
+  </div>
 
-let stress = 40;
-let voiceUnlocked = false;
-let gameStarted = false;
-
-const stressText = document.getElementById("stress");
-const game = document.getElementById("game");
-const activityText = document.getElementById("activityText");
-
-/* 🔊 Unlock voice on first click */
-document.body.addEventListener("click", function() {
-  if (!voiceUnlocked) {
-    let msg = new SpeechSynthesisUtterance("System ready");
-    speechSynthesis.speak(msg);
-    voiceUnlocked = true;
-  }
-}, { once: true });
-
-function speak(text) {
-  if (!voiceUnlocked) return;
-  speechSynthesis.cancel();
-  let msg = new SpeechSynthesisUtterance(text);
-  msg.rate = 0.9;
-  speechSynthesis.speak(msg);
-}
-
-function increaseStress() {
-  stress += 15;
-  if (stress > 100) stress = 100;
-  stressText.innerText = stress;
-
-  if (stress >= 70 && !gameStarted) {
-    startGame();
-  }
-}
-
-function startGame() {
-  gameStarted = true;
-  game.style.display = "block";
-
-  speak("Your stress is high. Please breathe slowly.");
-
-  let steps = ["Inhale slowly...", "Hold...", "Exhale slowly..."];
-  let i = 0;
-
-  let interval = setInterval(function() {
-    activityText.innerText = steps[i];
-    i++;
-
-    if (i >= steps.length) {
-      clearInterval(interval);
-      stress -= 30;
-      if (stress < 0) stress = 0;
-      stressText.innerText = stress;
-      game.style.display = "none";
-      gameStarted = false;
-    }
-
-  }, 3000);
-}
-
-</script>
-
+  <script src="script.js"></script>
 </body>
 </html>
