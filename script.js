@@ -1,188 +1,133 @@
-const orb = document.querySelector(".orb");
-const text = document.getElementById("statusText");
-const panicBtn = document.getElementById("panicBtn");
 const videoElement = document.getElementById("camera");
+const stressText = document.getElementById("stressValue");
+const instruction = document.getElementById("instruction");
+const orb = document.querySelector(".orb");
 
-let tapTimes = [];
-let stressLevel = "low";
-let breathingInterval = null;
-let lastFaceX = null;
+let stressScore = 0;
+let blinkCounter = 0;
+let lastBlinkTime = 0;
+let lastNoseX = null;
 
 /* ================= VOICE ================= */
 
 function speak(message) {
   const speech = new SpeechSynthesisUtterance(message);
   speech.rate = 0.9;
-  speech.pitch = 1;
-  speech.volume = 1;
-
   window.speechSynthesis.cancel();
   window.speechSynthesis.speak(speech);
 }
 
+document.addEventListener("click", function enableAudio() {
+  window.speechSynthesis.resume();
+  document.removeEventListener("click", enableAudio);
+});
+
 /* ================= BREATHING ================= */
 
 function startBreathing(speed) {
-  clearInterval(breathingInterval);
+  orb.style.transition = speed + "ms ease-in-out";
 
-  breathingInterval = setInterval(() => {
+  setInterval(() => {
     orb.style.transform = "scale(1.5)";
-
-    if (navigator.vibrate) {
-      navigator.vibrate([200, 200, 200]);
-    }
-
     setTimeout(() => {
       orb.style.transform = "scale(1)";
     }, speed / 2);
-
   }, speed);
 }
 
-/* ================= TAP DETECTION ================= */
+/* ================= STRESS UPDATE ================= */
 
-document.body.addEventListener("click", (event) => {
-  if (stressLevel === "panic") return;
+function updateStress() {
+  if (stressScore > 100) stressScore = 100;
+  if (stressScore < 0) stressScore = 0;
 
-  const now = Date.now();
-  tapTimes.push(now);
+  stressText.innerText = "Stress Level: " + Math.round(stressScore) + "%";
 
-  if (tapTimes.length > 5) tapTimes.shift();
-
-  if (tapTimes.length < 2) return;
-
-  const interval =
-    tapTimes[tapTimes.length - 1] -
-    tapTimes[tapTimes.length - 2];
-
-  if (interval < 600) stressLevel = "high";
-  else if (interval < 1200) stressLevel = "medium";
-  else stressLevel = "low";
-
-  applyIntervention();
-});
-
-function applyIntervention() {
-  clearInterval(breathingInterval);
-
-  if (stressLevel === "high") {
+  if (stressScore > 70) {
     document.body.style.backgroundColor = "#2b0000";
-    text.innerText = "High stress detected.";
-    speak("High stress detected. You are safe.");
+    instruction.innerText = "High stress detected. Breathe slowly.";
+    speak("High stress detected. Breathe slowly.");
     startBreathing(2000);
   }
-  else if (stressLevel === "medium") {
+  else if (stressScore > 40) {
     document.body.style.backgroundColor = "#1e293b";
-    text.innerText = "Let’s regulate together.";
-    speak("Let us regulate together.");
+    instruction.innerText = "Moderate stress. Regulate breathing.";
+    speak("Moderate stress. Regulate breathing.");
     startBreathing(3000);
   }
   else {
     document.body.style.backgroundColor = "#0f172a";
-    text.innerText = "Nice and steady.";
-    speak("Nice and steady.");
+    instruction.innerText = "You appear calm.";
     startBreathing(4000);
   }
 }
 
-/* ================= PANIC MODE ================= */
-
-panicBtn.addEventListener("click", function (event) {
-  event.stopPropagation();
-  stressLevel = "panic";
-
-  document.body.style.backgroundColor = "#000000";
-  text.innerText = "Panic reset activated.";
-  speak("Panic reset activated. You are safe.");
-
-  startBreathing(5000);
-});
-
-/* ================= CAMERA ================= */
+/* ================= FACE MESH ================= */
 
 navigator.mediaDevices.getUserMedia({ video: true })
   .then(stream => {
     videoElement.srcObject = stream;
-  })
-  .catch(err => {
-    console.log("Camera denied:", err);
   });
 
-const faceDetection = new FaceDetection({
+const faceMesh = new FaceMesh({
   locateFile: (file) =>
-    `https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/${file}`
+    `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
 });
 
-faceDetection.setOptions({
-  model: "short",
-  minDetectionConfidence: 0.6
+faceMesh.setOptions({
+  maxNumFaces: 1,
+  refineLandmarks: true,
+  minDetectionConfidence: 0.6,
+  minTrackingConfidence: 0.6
 });
 
-faceDetection.onResults(results => {
+faceMesh.onResults(results => {
 
-  if (results.detections.length > 0 && stressLevel !== "panic") {
+  if (!results.multiFaceLandmarks.length) return;
 
-    const box = results.detections[0].boundingBox;
-    const currentX = box.xCenter;
+  const landmarks = results.multiFaceLandmarks[0];
 
-    if (lastFaceX !== null) {
-      let movement = Math.abs(currentX - lastFaceX);
+  /* ----- Blink Detection ----- */
+  const leftEyeTop = landmarks[159];
+  const leftEyeBottom = landmarks[145];
 
-      if (movement > 0.05) {
-        stressLevel = "high";
-        document.body.style.backgroundColor = "#2b0000";
-        text.innerText = "Agitated head movement detected.";
-        speak("Agitated movement detected.");
-        startBreathing(2000);
-      } else {
-        document.body.style.backgroundColor = "#111827";
-        text.innerText = "Face detected. Staying calm.";
-      }
+  const eyeDistance = Math.abs(leftEyeTop.y - leftEyeBottom.y);
+
+  if (eyeDistance < 0.01) {
+    const now = Date.now();
+    if (now - lastBlinkTime > 500) {
+      blinkCounter++;
+      lastBlinkTime = now;
+      stressScore += 5; // rapid blinking increases stress
     }
-
-    lastFaceX = currentX;
   }
+
+  /* ----- Head Movement Detection ----- */
+  const nose = landmarks[1];
+  const currentX = nose.x;
+
+  if (lastNoseX !== null) {
+    const movement = Math.abs(currentX - lastNoseX);
+
+    if (movement > 0.02) {
+      stressScore += 3;
+    }
+  }
+
+  lastNoseX = currentX;
+
+  /* Natural calm decay */
+  stressScore -= 0.5;
+
+  updateStress();
 });
 
 const camera = new Camera(videoElement, {
   onFrame: async () => {
-    await faceDetection.send({ image: videoElement });
+    await faceMesh.send({ image: videoElement });
   },
   width: 640,
   height: 480
 });
 
 camera.start();
-
-/* ================= ACCELEROMETER ================= */
-
-let shakeThreshold = 15;
-let lastX = null;
-let lastY = null;
-let lastZ = null;
-
-window.addEventListener("devicemotion", function(event) {
-
-  let acceleration = event.accelerationIncludingGravity;
-  if (!acceleration) return;
-
-  let x = acceleration.x;
-  let y = acceleration.y;
-  let z = acceleration.z;
-
-  if (lastX !== null) {
-    let delta = Math.abs(x + y + z - lastX - lastY - lastZ);
-
-    if (delta > shakeThreshold && stressLevel !== "panic") {
-      stressLevel = "high";
-      document.body.style.backgroundColor = "#2b0000";
-      text.innerText = "Agitated movement detected.";
-      speak("Agitated movement detected.");
-      startBreathing(2000);
-    }
-  }
-
-  lastX = x;
-  lastY = y;
-  lastZ = z;
-});
