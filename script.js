@@ -2,13 +2,13 @@ const orb = document.querySelector(".orb");
 const text = document.querySelector("p");
 
 let tapTimes = [];
-let breathingSpeed = 4000; // default inhale speed
+let stressLevel = "low";
+let breathingInterval;
 
 document.body.addEventListener("click", () => {
   const now = Date.now();
   tapTimes.push(now);
 
-  // Keep only last 5 taps
   if (tapTimes.length > 5) {
     tapTimes.shift();
   }
@@ -22,22 +22,41 @@ function detectStress() {
   const interval = tapTimes[tapTimes.length - 1] - tapTimes[tapTimes.length - 2];
 
   if (interval < 300) {
-    breathingSpeed = 2000;
-    text.innerText = "High stress detected. Slow down with me.";
+    stressLevel = "high";
   } else if (interval < 800) {
-    breathingSpeed = 3000;
-    text.innerText = "Let’s regulate together.";
+    stressLevel = "medium";
   } else {
-    breathingSpeed = 4000;
-    text.innerText = "Nice and steady.";
+    stressLevel = "low";
   }
 
-  startBreathing();
+  applyIntervention();
 }
 
-function startBreathing() {
-  orb.style.transform = "scale(1.5)";
-  setTimeout(() => {
-    orb.style.transform = "scale(1)";
-  }, breathingSpeed);
+function applyIntervention() {
+  clearInterval(breathingInterval);
+
+  if (stressLevel === "high") {
+    document.body.style.background = "#2b0000";
+    text.innerText = "High stress detected. Slow down with me.";
+    startBreathing(2000);
+  } 
+  else if (stressLevel === "medium") {
+    document.body.style.background = "#1e293b";
+    text.innerText = "Let's regulate together.";
+    startBreathing(3000);
+  } 
+  else {
+    document.body.style.background = "#0f172a";
+    text.innerText = "Nice and steady.";
+    startBreathing(4000);
+  }
+}
+
+function startBreathing(speed) {
+  breathingInterval = setInterval(() => {
+    orb.style.transform = "scale(1.5)";
+    setTimeout(() => {
+      orb.style.transform = "scale(1)";
+    }, speed / 2);
+  }, speed);
 }
