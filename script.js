@@ -1,193 +1,148 @@
-document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener("DOMContentLoaded",()=>{
 
-let stressScore = 20;
-let lastBlinkTime = 0;
-let lastNoseX = null;
-let activityStarted = false;
-let cameraInstance;
+let stress=20;
+let lastBlink=0;
+let lastX=null;
+let triggered=false;
 
-const video = document.getElementById("camera");
-const stressText = document.getElementById("stressValue");
-const instruction = document.getElementById("instruction");
+const video=document.getElementById("camera");
+const stressText=document.getElementById("stressValue");
+const instruction=document.getElementById("instruction");
 
-/* ================= VOICE ================= */
-
-function speak(msg){
-  const s = new SpeechSynthesisUtterance(msg);
-  s.rate = 0.9;
-  window.speechSynthesis.cancel();
-  window.speechSynthesis.speak(s);
+function speak(t){
+  const s=new SpeechSynthesisUtterance(t);
+  speechSynthesis.cancel();
+  speechSynthesis.speak(s);
 }
 
-/* ================= STRESS UPDATE ================= */
-
 function updateStress(){
-  stressScore = Math.max(0, Math.min(100, stressScore));
-  stressText.innerText = "Stress Level: " + Math.round(stressScore) + "%";
+  stress=Math.max(0,Math.min(100,stress));
+  stressText.innerText="Stress Level: "+Math.round(stress)+"%";
 
-  if(stressScore > 70 && !activityStarted){
-    activityStarted = true;
-    speak("You are in high stress. Now click on one activity you want.");
+  if(stress>70 && !triggered){
+    triggered=true;
+    speak("You are in high stress. Click one activity.");
     document.getElementById("monitor").style.display="none";
     document.getElementById("activity").style.display="block";
   }
 }
 
-/* ================= CAMERA ================= */
-
+/* CAMERA */
 navigator.mediaDevices.getUserMedia({video:true})
 .then(stream=>{
-  video.srcObject = stream;
+  video.srcObject=stream;
   video.play();
-  startFaceMesh();
+  startFace();
 })
-.catch(()=> instruction.innerText="Camera denied");
+.catch(()=>instruction.innerText="Camera denied");
 
-/* ================= FACEMESH ================= */
-
-function startFaceMesh(){
-
-  const faceMesh = new FaceMesh({
-    locateFile: file =>
-      `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
+/* FACEMESH */
+function startFace(){
+  const face=new FaceMesh({
+    locateFile:f=>`https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${f}`
   });
 
-  faceMesh.setOptions({maxNumFaces:1});
+  face.onResults(r=>{
+    if(triggered) return;
+    if(!r.multiFaceLandmarks.length) return;
 
-  faceMesh.onResults(results=>{
+    const l=r.multiFaceLandmarks[0];
 
-    if(activityStarted) return;
-    if(!results.multiFaceLandmarks.length) return;
-
-    const landmarks = results.multiFaceLandmarks[0];
-
-    // Blink detection (smooth)
-    const eyeDist = Math.abs(landmarks[159].y - landmarks[145].y);
-
-    if(eyeDist < 0.01){
-      const now = Date.now();
-      if(now - lastBlinkTime > 600){
-        stressScore += 5;
-        lastBlinkTime = now;
+    const eye=Math.abs(l[159].y-l[145].y);
+    if(eye<0.01){
+      if(Date.now()-lastBlink>600){
+        stress+=5;
+        lastBlink=Date.now();
       }
     }
 
-    // Head movement (smooth)
-    const movement = Math.abs(
-      landmarks[1].x - (lastNoseX || landmarks[1].x)
-    );
+    const move=Math.abs(l[1].x-(lastX||l[1].x));
+    if(move>0.03) stress+=3;
 
-    if(movement > 0.03){
-      stressScore += 3;
-    }
-
-    lastNoseX = landmarks[1].x;
-
-    // Calm decay (slow)
-    stressScore -= 0.02;
+    lastX=l[1].x;
+    stress-=0.02;
 
     updateStress();
   });
 
-  cameraInstance = new Camera(video,{
-    onFrame: async()=> await faceMesh.send({image:video})
-  });
-
-  cameraInstance.start();
+  new Camera(video,{
+    onFrame:async()=>await face.send({image:video})
+  }).start();
 }
 
-/* ================= ACTIVITY CONTROL ================= */
-
-function hideAll(){
-  document.getElementById("activityMenu").style.display="none";
-  document.getElementById("breathingSection").style.display="none";
-  document.getElementById("thoughtSection").style.display="none";
-  document.getElementById("rhythmSection").style.display="none";
-  document.getElementById("knifeSection").style.display="none";
+/* SECTION CONTROL */
+function hideSections(){
+  document.querySelectorAll(".section")
+  .forEach(s=>s.style.display="none");
+  document.getElementById("menu").style.display="none";
 }
 
-/* ================= BREATHING ================= */
+/* BREATHING */
+window.startBreathing=()=>{
+  hideSections();
+  document.getElementById("breathing").style.display="block";
 
-window.startBreathing = function(){
-
-  hideAll();
-  document.getElementById("breathingSection").style.display="block";
-
-  const circle = document.querySelector(".breathing-circle");
-  const text = document.getElementById("breathingText");
+  const c=document.querySelector(".circle");
+  const t=document.getElementById("breathText");
 
   setInterval(()=>{
-    circle.style.transform="scale(1.5)";
-    text.innerText="Breathe In";
-    speak("Breathe in");
-
+    c.style.transform="scale(1.5)";
+    t.innerText="Breathe In";
     setTimeout(()=>{
-      circle.style.transform="scale(1)";
-      text.innerText="Breathe Out";
-      speak("Breathe out");
+      c.style.transform="scale(1)";
+      t.innerText="Breathe Out";
     },4000);
-
   },8000);
 };
 
-/* ================= THOUGHT RELEASE ================= */
+/* THOUGHTS */
+window.startThoughts=()=>{
+  hideSections();
+  document.getElementById("thoughts").style.display="block";
 
-window.startThoughts = function(){
-
-  hideAll();
-  document.getElementById("thoughtSection").style.display="block";
-
+  const area=document.getElementById("cardArea");
+  area.innerHTML="";
   let count=0;
-  const container=document.getElementById("thoughtContainer");
-  container.innerHTML="";
 
-  function createCard(){
-
+  function create(){
     if(count>=5){
-      container.innerHTML="<h2>✨ Well Done</h2>";
+      area.innerHTML="<h3>Well Done</h3>";
       return;
     }
-
     const card=document.createElement("div");
-    card.className="thoughtCard";
-    card.innerText="Let this thought go...";
-    container.appendChild(card);
+    card.className="card";
+    card.innerText="Release this thought";
+    area.appendChild(card);
 
-    let startX=0;
-
+    let sx=0;
     card.onmousedown=e=>{
-      startX=e.clientX;
+      sx=e.clientX;
       document.onmousemove=ev=>{
-        const move=ev.clientX-startX;
+        const dx=ev.clientX-sx;
         card.style.transform=
-        `translateX(calc(-50% + ${move}px)) rotate(${move/10}deg)`;
+        `translateX(calc(-50% + ${dx}px)) rotate(${dx/10}deg)`;
       };
     };
-
     document.onmouseup=e=>{
       document.onmousemove=null;
-      if(Math.abs(e.clientX-startX)>100){
+      if(Math.abs(e.clientX-sx)>100){
         card.remove();
         count++;
-        stressScore-=8;
-        createCard();
+        stress-=8;
+        create();
       }else{
         card.style.transform="translateX(-50%)";
       }
     };
   }
-
-  createCard();
+  create();
 };
 
-/* ================= RHYTHM GAME ================= */
+/* RHYTHM */
+window.startRhythm=()=>{
+  hideSections();
+  document.getElementById("rhythm").style.display="block";
 
-window.startRhythm=function(){
-
-  hideAll();
-  document.getElementById("rhythmSection").style.display="block";
-
-  let score=0;
   const dots=document.querySelectorAll(".dot");
   let target=0;
 
@@ -197,47 +152,36 @@ window.startRhythm=function(){
     dots[target].classList.add("active");
   }
 
-  dots.forEach(dot=>{
-    dot.onclick=function(){
-      if(parseInt(dot.dataset.id)===target){
-        score++;
-        stressScore-=3;
-
-        if(score>=15){
-          document.getElementById("rhythmSection").innerHTML="<h2>✨ Grounded</h2>";
-          return;
-        }
+  dots.forEach(d=>{
+    d.onclick=()=>{
+      if(parseInt(d.dataset.i)===target){
+        stress-=3;
         next();
       }
     };
   });
-
   next();
 };
 
-/* ================= KNIFE HIT (FIXED) ================= */
+/* KNIFE */
+window.startKnife=()=>{
+  hideSections();
+  document.getElementById("knife").style.display="block";
 
-window.startKnife=function(){
-
-  hideAll();
-  document.getElementById("knifeSection").style.display="block";
-
+  const wheel=document.getElementById("wheel");
+  wheel.innerHTML="";
   let knives=10;
   let angles=[];
-  const wheel=document.getElementById("wheel");
-
-  wheel.innerHTML="";
-  document.getElementById("knifeCount").innerText=knives;
+  document.getElementById("knifeLeft").innerText=knives;
 
   function throwKnife(){
-
     if(knives<=0) return;
 
     const angle=Math.floor(Math.random()*360);
 
     for(let a of angles){
       if(Math.abs(a-angle)<20){
-        document.getElementById("knifeSection").innerHTML="<h2>❌ Game Over</h2>";
+        document.getElementById("knife").innerHTML="<h3>Game Over</h3>";
         wheel.removeEventListener("click",throwKnife);
         return;
       }
@@ -245,18 +189,17 @@ window.startKnife=function(){
 
     angles.push(angle);
 
-    const knife=document.createElement("div");
-    knife.className="knife";
-    knife.style.transform=`rotate(${angle}deg)`;
-    wheel.appendChild(knife);
+    const k=document.createElement("div");
+    k.className="knife";
+    k.style.transform=`rotate(${angle}deg)`;
+    wheel.appendChild(k);
 
     knives--;
-    document.getElementById("knifeCount").innerText=knives;
-
-    stressScore-=4;
+    document.getElementById("knifeLeft").innerText=knives;
+    stress-=4;
 
     if(knives===0){
-      document.getElementById("knifeSection").innerHTML="<h2>🏆 You Win!</h2>";
+      document.getElementById("knife").innerHTML="<h3>You Win</h3>";
       wheel.removeEventListener("click",throwKnife);
     }
   }
