@@ -12,16 +12,8 @@ document.addEventListener("DOMContentLoaded", function () {
   let lastNoseX = null;
   let activityStarted = false;
   let cameraInstance = null;
-  let releasedCount = 0;
 
-  const thoughts = [
-    "I'm not good enough",
-    "What if I fail?",
-    "Everyone is judging me",
-    "I can't handle this",
-    "I'm falling behind",
-    "Nothing will change"
-  ];
+  /* ================= VOICE ================= */
 
   function speak(message) {
     const speech = new SpeechSynthesisUtterance(message);
@@ -30,21 +22,21 @@ document.addEventListener("DOMContentLoaded", function () {
     window.speechSynthesis.speak(speech);
   }
 
+  /* ================= STRESS ================= */
+
   function updateStress() {
     stressScore = Math.max(0, Math.min(100, stressScore));
     stressText.innerText = "Stress Level: " + Math.round(stressScore) + "%";
 
     if (stressScore > 70 && !activityStarted) {
       activityStarted = true;
-      speak("You are in high stress. Choose an activity.");
+      speak("You are in high stress. Now click on one activity you want.");
       launchActivity();
     }
   }
 
   function launchActivity() {
-
     if (cameraInstance) cameraInstance.stop();
-
     const stream = videoElement.srcObject;
     if (stream) stream.getTracks().forEach(track => track.stop());
 
@@ -55,7 +47,6 @@ document.addEventListener("DOMContentLoaded", function () {
   /* ================= BREATHING ================= */
 
   window.startBreathing = function () {
-
     document.getElementById("activityMenu").style.display = "none";
     document.getElementById("breathingSection").style.display = "block";
 
@@ -63,7 +54,6 @@ document.addEventListener("DOMContentLoaded", function () {
     const text = document.getElementById("breathingText");
 
     setInterval(() => {
-
       circle.style.transform = "scale(1.5)";
       text.innerText = "Breathe In...";
       speak("Breathe in");
@@ -73,73 +63,142 @@ document.addEventListener("DOMContentLoaded", function () {
         text.innerText = "Breathe Out...";
         speak("Breathe out");
       }, 4000);
-
     }, 8000);
   };
 
-  /* ================= THOUGHT RELEASE ================= */
+  /* ================= THOUGHTS ================= */
 
   window.startThoughts = function () {
-
     document.getElementById("activityMenu").style.display = "none";
     document.getElementById("thoughtSection").style.display = "block";
 
-    releasedCount = 0;
+    let releasedCount = 0;
     document.getElementById("releasedCount").innerText = 0;
 
-    createThoughtCard();
-  };
+    function createCard() {
+      if (releasedCount >= 5) {
+        document.getElementById("thoughtSection").innerHTML =
+          "<h1>✨ Well Done</h1><p>You released your thoughts.</p>";
+        return;
+      }
 
-  function createThoughtCard() {
+      const container = document.getElementById("thoughtContainer");
+      const card = document.createElement("div");
+      card.className = "thoughtCard";
+      card.innerText = "Let this thought go...";
 
-    if (releasedCount >= 5) {
-      document.getElementById("thoughtSection").innerHTML =
-        "<h1>✨ Well Done</h1><p>You released your thoughts.</p>";
-      return;
+      let startX = 0;
+
+      card.onmousedown = (e) => {
+        startX = e.clientX;
+        document.onmousemove = (ev) => {
+          const moveX = ev.clientX - startX;
+          card.style.transform =
+            `translateX(calc(-50% + ${moveX}px)) rotate(${moveX/10}deg)`;
+        };
+      };
+
+      document.onmouseup = (e) => {
+        document.onmousemove = null;
+        const diff = e.clientX - startX;
+
+        if (Math.abs(diff) > 100) {
+          card.remove();
+          releasedCount++;
+          document.getElementById("releasedCount").innerText = releasedCount;
+          stressScore -= 15;
+          createCard();
+        } else {
+          card.style.transform = "translateX(-50%)";
+        }
+      };
+
+      container.appendChild(card);
     }
 
-    const container = document.getElementById("thoughtContainer");
-    const card = document.createElement("div");
-    card.className = "thoughtCard";
-    card.innerText = thoughts[Math.floor(Math.random()*thoughts.length)];
+    createCard();
+  };
 
-    let startX = 0;
+  /* ================= RHYTHM ================= */
 
-    card.onmousedown = (e) => {
-      startX = e.clientX;
+  let rhythmScore = 0;
+  let rhythmStreak = 0;
+  let rhythmSpeed = 1500;
+  let currentTarget = -1;
+  let rhythmTimer = null;
 
-      document.onmousemove = (ev) => {
-        const moveX = ev.clientX - startX;
-        card.style.transform =
-          `translateX(calc(-50% + ${moveX}px)) rotate(${moveX/10}deg)`;
-      };
-    };
+  window.startRhythm = function () {
 
-    document.onmouseup = (e) => {
-      document.onmousemove = null;
+    document.getElementById("activityMenu").style.display = "none";
+    document.getElementById("rhythmSection").style.display = "block";
 
-      const diff = e.clientX - startX;
+    rhythmScore = 0;
+    rhythmStreak = 0;
+    rhythmSpeed = 1500;
 
-      if (Math.abs(diff) > 100) {
-        card.remove();
-        releasedCount++;
-        document.getElementById("releasedCount").innerText = releasedCount;
-        stressScore -= 15;
-        createThoughtCard();
-      } else {
-        card.style.transform = "translateX(-50%)";
-      }
-    };
+    document.getElementById("rhythmScore").innerText = 0;
+    document.getElementById("rhythmStreak").innerText = 0;
 
-    container.appendChild(card);
+    nextRound();
+  };
+
+  function nextRound() {
+
+    const dots = document.querySelectorAll(".dot");
+
+    if (currentTarget >= 0) {
+      dots[currentTarget].classList.remove("active");
+    }
+
+    currentTarget = Math.floor(Math.random() * dots.length);
+    dots[currentTarget].classList.add("active");
+
+    rhythmTimer = setTimeout(() => {
+      rhythmStreak = 0;
+      document.getElementById("rhythmStreak").innerText = rhythmStreak;
+      nextRound();
+    }, rhythmSpeed);
   }
+
+  document.addEventListener("click", function (e) {
+
+    if (!e.target.classList.contains("dot")) return;
+
+    const clicked = parseInt(e.target.dataset.id);
+
+    if (clicked === currentTarget) {
+
+      clearTimeout(rhythmTimer);
+
+      rhythmScore++;
+      rhythmStreak++;
+
+      document.getElementById("rhythmScore").innerText = rhythmScore;
+      document.getElementById("rhythmStreak").innerText = rhythmStreak;
+
+      stressScore -= 5;
+
+      if (rhythmSpeed > 600) rhythmSpeed -= 50;
+
+      if (rhythmScore >= 15) {
+        document.getElementById("rhythmSection").innerHTML =
+          "<h1>✨ Grounded!</h1><p>You focused successfully.</p>";
+        return;
+      }
+
+      nextRound();
+
+    } else {
+      rhythmStreak = 0;
+      document.getElementById("rhythmStreak").innerText = rhythmStreak;
+    }
+  });
 
   /* ================= CAMERA ================= */
 
   async function initCamera() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-
       videoElement.srcObject = stream;
 
       videoElement.onloadedmetadata = () => {
@@ -147,25 +206,20 @@ document.addEventListener("DOMContentLoaded", function () {
         instruction.innerText = "Camera active";
         startFaceMesh();
       };
-
     } catch {
       instruction.innerText = "Camera denied";
     }
   }
 
   function startFaceMesh() {
-
     const faceMesh = new FaceMesh({
       locateFile: file =>
         `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
     });
 
-    faceMesh.setOptions({
-      maxNumFaces: 1
-    });
+    faceMesh.setOptions({ maxNumFaces: 1 });
 
     faceMesh.onResults(results => {
-
       if (activityStarted) return;
       if (!results.multiFaceLandmarks.length) return;
 
