@@ -1,4 +1,20 @@
+
+document.addEventListener("DOMContentLoaded", function () {
+
 const videoElement = document.getElementById("camera");
+const stressText = document.getElementById("stressValue");
+const instruction = document.getElementById("instruction");
+const orb = document.querySelector(".orb");
+
+let stressScore = 20;
+let lastBlinkTime = 0;
+let lastNoseX = null;
+let lastSpokenState = "";
+let activityStarted = false;
+
+/* ALL YOUR CODE BELOW STAYS SAME */
+
+});const videoElement = document.getElementById("camera");
 const stressText = document.getElementById("stressValue");
 const instruction = document.getElementById("instruction");
 const orb = document.querySelector(".orb");
@@ -155,3 +171,4 @@ function startFaceMesh() {
 }
 
 initCameraAndFaceMesh();
+
