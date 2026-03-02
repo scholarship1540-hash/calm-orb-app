@@ -6,10 +6,8 @@ const orb = document.querySelector(".orb");
 let stressScore = 20;
 let lastBlinkTime = 0;
 let lastNoseX = null;
-
-let breathingInterval;
-let currentBreathingSpeed = null;
 let lastSpokenState = "";
+let activityStarted = false;
 
 /* ================= VOICE ================= */
 
@@ -20,25 +18,7 @@ function speak(message) {
   window.speechSynthesis.speak(speech);
 }
 
-/* ================= BREATHING ================= */
-
-function startBreathing(speed) {
-  if (currentBreathingSpeed === speed) return;
-
-  currentBreathingSpeed = speed;
-  clearInterval(breathingInterval);
-
-  orb.style.transition = speed + "ms ease-in-out";
-
-  breathingInterval = setInterval(() => {
-    orb.style.transform = "scale(1.5)";
-    setTimeout(() => {
-      orb.style.transform = "scale(1)";
-    }, speed / 2);
-  }, speed);
-}
-
-/* ================= STRESS UPDATE ================= */
+/* ================= UPDATE STRESS ================= */
 
 function updateStress() {
 
@@ -47,45 +27,49 @@ function updateStress() {
 
   stressText.innerText = "Stress Level: " + Math.round(stressScore) + "%";
 
-  if (stressScore > 70) {
-    document.body.style.backgroundColor = "#2b0000";
-    instruction.innerText = "High stress detected.";
-    startBreathing(2000);
-
+  if (stressScore > 70 && !activityStarted) {
     if (lastSpokenState !== "high") {
       speak("You are in high stress. Please do activity.");
       lastSpokenState = "high";
-
-      launchActivity();
     }
-  }
-  else if (stressScore > 40) {
-    document.body.style.backgroundColor = "#1e293b";
-    instruction.innerText = "Moderate stress.";
-    startBreathing(3000);
 
-    if (lastSpokenState !== "moderate") {
-      speak("Moderate stress detected. Try to relax.");
-      lastSpokenState = "moderate";
-    }
-  }
-  else {
-    document.body.style.backgroundColor = "#0f172a";
-    instruction.innerText = "You appear calm.";
-    startBreathing(4000);
-
-    if (lastSpokenState !== "calm") {
-      speak("You appear calm.");
-      lastSpokenState = "calm";
-    }
+    launchActivity();
   }
 }
 
-/* ================= LAUNCH ACTIVITY ================= */
+/* ================= ACTIVITY ================= */
 
 function launchActivity() {
+  activityStarted = true;
+
+  // Stop camera
+  const stream = videoElement.srcObject;
+  if (stream) {
+    stream.getTracks().forEach(track => track.stop());
+  }
+
   document.getElementById("monitor").style.display = "none";
-  document.getElementById("activityContainer").style.display = "block";
+  document.getElementById("activity").style.display = "block";
+
+  startBreathingActivity();
+}
+
+function startBreathingActivity() {
+  const circle = document.querySelector(".breathing-circle");
+  const text = document.getElementById("activityText");
+
+  setInterval(() => {
+    circle.style.transform = "scale(1.5)";
+    text.innerText = "Breathe In...";
+    speak("Breathe in");
+
+    setTimeout(() => {
+      circle.style.transform = "scale(1)";
+      text.innerText = "Breathe Out...";
+      speak("Breathe out");
+    }, 4000);
+
+  }, 8000);
 }
 
 /* ================= CAMERA ================= */
@@ -94,7 +78,7 @@ navigator.mediaDevices.getUserMedia({ video: true })
   .then(stream => {
     videoElement.srcObject = stream;
   })
-  .catch(err => {
+  .catch(() => {
     instruction.innerText = "Camera access denied.";
   });
 
@@ -118,7 +102,7 @@ faceMesh.onResults(results => {
 
   const landmarks = results.multiFaceLandmarks[0];
 
-  /* Blink detection */
+  // Blink detection
   const leftEyeTop = landmarks[159];
   const leftEyeBottom = landmarks[145];
   const eyeDistance = Math.abs(leftEyeTop.y - leftEyeBottom.y);
@@ -131,7 +115,7 @@ faceMesh.onResults(results => {
     }
   }
 
-  /* Head shake detection */
+  // Head shake detection
   const nose = landmarks[1];
   const currentX = nose.x;
 
@@ -144,7 +128,6 @@ faceMesh.onResults(results => {
 
   lastNoseX = currentX;
 
-  /* Calm decay */
   stressScore -= 0.5;
 
   updateStress();
