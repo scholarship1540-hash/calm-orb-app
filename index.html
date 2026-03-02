@@ -1,27 +1,25 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>AI Stress Estimator</title>
+  <title>AI Stress Monitor</title>
   <link rel="stylesheet" href="style.css">
 
   <!-- MediaPipe FaceMesh -->
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
 </head>
 
 <body>
 
   <div class="container">
-    <h1>AI Stress Estimator</h1>
+    <h1>AI Stress Monitor</h1>
 
     <video id="camera" autoplay muted playsinline width="320"></video>
 
     <div class="orb"></div>
 
     <h2 id="stressValue">Stress Level: 0%</h2>
-    <p id="instruction">Initializing sensors...</p>
-
+    <p id="instruction">Initializing...</p>
   </div>
 
   <script src="script.js"></script>
