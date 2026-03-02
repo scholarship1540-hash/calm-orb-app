@@ -1,74 +1,24 @@
-<script>
+<!DOCTYPE html>
+<html>
+<head>
+  <title>AI Stress Monitor</title>
+  <link rel="stylesheet" href="style.css">
 
-const video = document.getElementById("camera");
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+</head>
 
-async function startCamera() {
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: "user" },
-      audio: false
-    });
+<body>
 
-    video.srcObject = stream;
-    video.play();
+<h1>AI Stress Monitor</h1>
 
-    console.log("Camera started successfully");
+<video id="camera" width="320" height="240" autoplay muted playsinline></video>
 
-  } catch (err) {
-    console.error("Camera error:", err);
-    alert("Camera permission denied or browser blocked it.");
-  }
-}
+<div class="orb"></div>
 
-window.addEventListener("DOMContentLoaded", startCamera);
+<h2 id="stressValue">Stress Level: 0%</h2>
+<p id="message">Initializing...</p>
 
-
-/* ===== STRESS SYSTEM ===== */
-
-let stress = 40;
-let voiceUnlocked = false;
-let highTriggered = false;
-
-const stressText = document.getElementById("stressText");
-
-function updateStress() {
-  stressText.innerText = stress + "%";
-
-  if (stress >= 70 && !highTriggered) {
-    highTriggered = true;
-    speak("Your stress level is high. Please start a calming activity now.");
-  }
-
-  if (stress < 60) {
-    highTriggered = false;
-  }
-}
-
-function increaseStress() {
-  stress += 10;
-  if (stress > 100) stress = 100;
-  updateStress();
-}
-
-
-/* ===== VOICE ===== */
-
-document.body.addEventListener("click", () => {
-  if (!voiceUnlocked) {
-    speechSynthesis.speak(new SpeechSynthesisUtterance("System ready"));
-    voiceUnlocked = true;
-  }
-}, { once: true });
-
-function speak(text) {
-  if (!voiceUnlocked) return;
-
-  speechSynthesis.cancel();
-  const msg = new SpeechSynthesisUtterance(text);
-  msg.rate = 0.9;
-  speechSynthesis.speak(msg);
-}
-
-updateStress();
-
-</script>
+<script src="script.js"></script>
+</body>
+</html>
