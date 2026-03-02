@@ -22,3 +22,17 @@ body {
 .orb.breathe {
   transform: scale(1.5);
 }
+#panicBtn {
+  margin-top: 20px;
+  padding: 10px 20px;
+  border: none;
+  background: #ef4444;
+  color: white;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+#panicBtn:hover {
+  background: #dc2626;
+}
