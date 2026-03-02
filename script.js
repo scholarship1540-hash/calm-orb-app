@@ -7,11 +7,24 @@ document.addEventListener("DOMContentLoaded", function () {
   const monitorSection = document.getElementById("monitor");
   const activitySection = document.getElementById("activity");
 
+  const thoughtContainer = document.getElementById("thoughtContainer");
+  const releasedCountEl = document.getElementById("releasedCount");
+
   let stressScore = 20;
   let lastBlinkTime = 0;
   let lastNoseX = null;
   let activityStarted = false;
   let cameraInstance = null;
+  let releasedCount = 0;
+
+  const thoughts = [
+    "I'm not good enough",
+    "What if I fail?",
+    "Everyone is judging me",
+    "I can't handle this",
+    "I'm falling behind",
+    "Nothing will change"
+  ];
 
   function speak(message) {
     const speech = new SpeechSynthesisUtterance(message);
@@ -21,62 +34,109 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function updateStress() {
-    if (stressScore > 100) stressScore = 100;
-    if (stressScore < 0) stressScore = 0;
-
+    stressScore = Math.max(0, Math.min(100, stressScore));
     stressText.innerText = "Stress Level: " + Math.round(stressScore) + "%";
 
-    // 🔥 Trigger at 70%
     if (stressScore > 70 && !activityStarted) {
       activityStarted = true;
-      speak("You are in high stress. Do activity now.");
+      speak("You are in high stress. Release your thoughts now.");
       launchActivity();
     }
   }
 
   function launchActivity() {
 
-    if (cameraInstance) {
-      cameraInstance.stop();
-    }
+    if (cameraInstance) cameraInstance.stop();
 
     const stream = videoElement.srcObject;
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
-    }
+    if (stream) stream.getTracks().forEach(track => track.stop());
 
     monitorSection.style.display = "none";
     activitySection.style.display = "block";
 
-    startBreathing();
+    createThoughtCard();
   }
 
-  function startBreathing() {
+  function createThoughtCard() {
+    if (thoughts.length === 0) return;
 
-    const circle = document.querySelector(".breathing-circle");
-    const text = document.getElementById("activityText");
+    const text = thoughts.shift();
 
-    setInterval(() => {
+    const card = document.createElement("div");
+    card.className = "thoughtCard";
+    card.innerText = text;
 
-      circle.style.transform = "scale(1.5)";
-      text.innerText = "Breathe In...";
-      speak("Breathe in");
+    let startX = 0;
 
-      setTimeout(() => {
-        circle.style.transform = "scale(1)";
-        text.innerText = "Breathe Out...";
-        speak("Breathe out");
-      }, 4000);
+    card.onmousedown = (e) => {
+      startX = e.clientX;
 
-    }, 8000);
+      document.onmousemove = (ev) => {
+        const moveX = ev.clientX - startX;
+        card.style.transform =
+          `translateX(calc(-50% + ${moveX}px)) rotate(${moveX/10}deg)`;
+      };
+    };
+
+    document.onmouseup = (e) => {
+      document.onmousemove = null;
+      const diff = e.clientX - startX;
+
+      if (Math.abs(diff) > 100) {
+        card.remove();
+        releasedCount++;
+        releasedCountEl.innerText = releasedCount;
+
+        stressScore -= 15;
+        createParticles();
+
+        if (releasedCount >= 5) {
+          showCompletion();
+        } else {
+          createThoughtCard();
+        }
+      } else {
+        card.style.transform = "translateX(-50%)";
+      }
+    };
+
+    thoughtContainer.appendChild(card);
+  }
+
+  function createParticles() {
+    for (let i = 0; i < 12; i++) {
+      const p = document.createElement("div");
+      p.style.position = "absolute";
+      p.style.width = "6px";
+      p.style.height = "6px";
+      p.style.background = "#22d3ee";
+      p.style.borderRadius = "50%";
+      p.style.left = "50%";
+      p.style.top = "150px";
+
+      const angle = Math.random() * 360;
+      const distance = Math.random() * 120;
+
+      p.animate([
+        { transform: "translate(0,0)", opacity: 1 },
+        { transform: `translate(${Math.cos(angle)*distance}px, ${Math.sin(angle)*distance}px)`, opacity: 0 }
+      ], { duration: 800 });
+
+      thoughtContainer.appendChild(p);
+      setTimeout(() => p.remove(), 800);
+    }
+  }
+
+  function showCompletion() {
+    activitySection.innerHTML = `
+      <h1>✨ Well Done</h1>
+      <p>You released your thoughts.</p>
+    `;
   }
 
   async function initCamera() {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: true
-      });
-
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
       videoElement.srcObject = stream;
 
       videoElement.onloadedmetadata = () => {
@@ -85,14 +145,12 @@ document.addEventListener("DOMContentLoaded", function () {
         startFaceMesh();
       };
 
-    } catch (error) {
+    } catch (err) {
       instruction.innerText = "Camera denied";
-      console.error(error);
     }
   }
 
   function startFaceMesh() {
-
     const faceMesh = new FaceMesh({
       locateFile: file =>
         `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
@@ -100,9 +158,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     faceMesh.setOptions({
       maxNumFaces: 1,
-      refineLandmarks: false,
-      minDetectionConfidence: 0.5,
-      minTrackingConfidence: 0.5
+      refineLandmarks: false
     });
 
     faceMesh.onResults(results => {
@@ -112,10 +168,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
       const landmarks = results.multiFaceLandmarks[0];
 
-      // Blink detection
-      const leftEyeTop = landmarks[159];
-      const leftEyeBottom = landmarks[145];
-      const eyeDistance = Math.abs(leftEyeTop.y - leftEyeBottom.y);
+      const eyeDistance = Math.abs(
+        landmarks[159].y - landmarks[145].y
+      );
 
       if (eyeDistance < 0.01) {
         const now = Date.now();
@@ -125,20 +180,14 @@ document.addEventListener("DOMContentLoaded", function () {
         }
       }
 
-      // Head movement detection
-      const nose = landmarks[1];
-      const currentX = nose.x;
+      const movement = Math.abs(
+        landmarks[1].x - (lastNoseX || landmarks[1].x)
+      );
 
-      if (lastNoseX !== null) {
-        const movement = Math.abs(currentX - lastNoseX);
-        if (movement > 0.02) {
-          stressScore += 10;
-        }
-      }
+      if (movement > 0.02) stressScore += 10;
 
-      lastNoseX = currentX;
+      lastNoseX = landmarks[1].x;
 
-      // Slow calm reduction
       stressScore -= 0.05;
 
       updateStress();
