@@ -7,12 +7,38 @@ document.addEventListener("DOMContentLoaded", function () {
   let stressScore = 20;
   let lastBlinkTime = 0;
   let lastNoseX = null;
+  let highStressSpoken = false;
+
+  /* ================= VOICE FUNCTION ================= */
+
+  function speak(message) {
+    const speech = new SpeechSynthesisUtterance(message);
+    speech.rate = 0.9;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(speech);
+  }
+
+  /* ================= UPDATE STRESS ================= */
 
   function updateStress() {
     if (stressScore > 100) stressScore = 100;
     if (stressScore < 0) stressScore = 0;
+
     stressText.innerText = "Stress Level: " + Math.round(stressScore) + "%";
+
+    // HIGH STRESS ALERT
+    if (stressScore > 70 && !highStressSpoken) {
+      speak("You are in high stress. Do activity now.");
+      highStressSpoken = true;
+    }
+
+    // Reset voice trigger if stress drops
+    if (stressScore <= 60) {
+      highStressSpoken = false;
+    }
   }
+
+  /* ================= CAMERA ================= */
 
   async function initCamera() {
     try {
@@ -22,7 +48,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
       videoElement.srcObject = stream;
       instruction.innerText = "Camera active";
-
       startFaceMesh();
 
     } catch (error) {
@@ -30,6 +55,8 @@ document.addEventListener("DOMContentLoaded", function () {
       console.error(error);
     }
   }
+
+  /* ================= FACE MESH ================= */
 
   function startFaceMesh() {
 
@@ -51,7 +78,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
       const landmarks = results.multiFaceLandmarks[0];
 
-      // Blink detection
+      // BLINK DETECTION
       const leftEyeTop = landmarks[159];
       const leftEyeBottom = landmarks[145];
       const eyeDistance = Math.abs(leftEyeTop.y - leftEyeBottom.y);
@@ -64,18 +91,22 @@ document.addEventListener("DOMContentLoaded", function () {
         }
       }
 
-      // Head movement detection
+      // HEAD SHAKE DETECTION
       const nose = landmarks[1];
       const currentX = nose.x;
 
       if (lastNoseX !== null) {
         const movement = Math.abs(currentX - lastNoseX);
-        if (movement > 0.02) stressScore += 3;
+        if (movement > 0.02) {
+          stressScore += 3;
+        }
       }
 
       lastNoseX = currentX;
 
+      // CALM REDUCTION
       stressScore -= 0.5;
+
       updateStress();
     });
 
@@ -93,4 +124,3 @@ document.addEventListener("DOMContentLoaded", function () {
   initCamera();
 
 });
-
