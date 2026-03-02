@@ -9,8 +9,6 @@ document.addEventListener("DOMContentLoaded", function () {
   let lastNoseX = null;
   let highStressSpoken = false;
 
-  /* ================= VOICE FUNCTION ================= */
-
   function speak(message) {
     const speech = new SpeechSynthesisUtterance(message);
     speech.rate = 0.9;
@@ -18,37 +16,35 @@ document.addEventListener("DOMContentLoaded", function () {
     window.speechSynthesis.speak(speech);
   }
 
-  /* ================= UPDATE STRESS ================= */
-
   function updateStress() {
     if (stressScore > 100) stressScore = 100;
     if (stressScore < 0) stressScore = 0;
 
     stressText.innerText = "Stress Level: " + Math.round(stressScore) + "%";
 
-    // HIGH STRESS ALERT
     if (stressScore > 70 && !highStressSpoken) {
       speak("You are in high stress. Do activity now.");
       highStressSpoken = true;
     }
 
-    // Reset voice trigger if stress drops
-    if (stressScore <= 60) {
+    if (stressScore < 60) {
       highStressSpoken = false;
     }
   }
 
-  /* ================= CAMERA ================= */
-
   async function initCamera() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "user" }
+        video: true
       });
 
       videoElement.srcObject = stream;
-      instruction.innerText = "Camera active";
-      startFaceMesh();
+
+      videoElement.onloadedmetadata = () => {
+        videoElement.play();
+        instruction.innerText = "Camera active";
+        startFaceMesh();
+      };
 
     } catch (error) {
       instruction.innerText = "Camera access denied";
@@ -56,29 +52,27 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
-  /* ================= FACE MESH ================= */
-
   function startFaceMesh() {
 
     const faceMesh = new FaceMesh({
-      locateFile: file =>
+      locateFile: (file) =>
         `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
     });
 
     faceMesh.setOptions({
       maxNumFaces: 1,
-      refineLandmarks: true,
-      minDetectionConfidence: 0.6,
-      minTrackingConfidence: 0.6
+      refineLandmarks: false,   // 🔥 IMPORTANT CHANGE
+      minDetectionConfidence: 0.5,
+      minTrackingConfidence: 0.5
     });
 
-    faceMesh.onResults(results => {
+    faceMesh.onResults((results) => {
 
-      if (!results.multiFaceLandmarks.length) return;
+      if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) return;
 
       const landmarks = results.multiFaceLandmarks[0];
 
-      // BLINK DETECTION
+      // Blink detection
       const leftEyeTop = landmarks[159];
       const leftEyeBottom = landmarks[145];
       const eyeDistance = Math.abs(leftEyeTop.y - leftEyeBottom.y);
@@ -91,7 +85,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
       }
 
-      // HEAD SHAKE DETECTION
+      // Head shake detection
       const nose = landmarks[1];
       const currentX = nose.x;
 
@@ -104,7 +98,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
       lastNoseX = currentX;
 
-      // CALM REDUCTION
       stressScore -= 0.5;
 
       updateStress();
@@ -113,9 +106,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const camera = new Camera(videoElement, {
       onFrame: async () => {
         await faceMesh.send({ image: videoElement });
-      },
-      width: 640,
-      height: 480
+      }
     });
 
     camera.start();
