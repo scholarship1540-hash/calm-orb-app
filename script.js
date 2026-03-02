@@ -1,171 +1,153 @@
-/* ================= HIGH STRESS AUTO TRIGGER ================= */
-
-let voiceUnlocked = false;
-let highStressTriggered = false;
-
-// Unlock voice on first click
-document.body.addEventListener("click", function () {
-  if (!voiceUnlocked) {
-    const unlock = new SpeechSynthesisUtterance("System ready");
-    speechSynthesis.speak(unlock);
-    voiceUnlocked = true;
-  }
-}, { once: true });
-
-function speak(text) const video = document.getElementById("camera");
+const videoElement = document.getElementById("camera");
 const stressText = document.getElementById("stressValue");
-const message = document.getElementById("message");
+const instruction = document.getElementById("instruction");
 const orb = document.querySelector(".orb");
 
-let stress = 0;
-let lastState = "";
+let stressScore = 0;
 let lastNoseX = null;
+let breathingInterval = null;
+let lastStressState = "";
 
-/* VOICE */
-function speak(text){
-  if(!('speechSynthesis' in window)) return;
-  const speech = new SpeechSynthesisUtterance(text);
+/* ================= VOICE ================= */
+
+function speak(message) {
+  if (!("speechSynthesis" in window)) return;
+
+  const speech = new SpeechSynthesisUtterance(message);
   speech.rate = 0.9;
+  speech.pitch = 1;
+
   window.speechSynthesis.cancel();
   window.speechSynthesis.speak(speech);
 }
 
-document.addEventListener("click", function enable(){
+// Unlock audio after first click
+document.addEventListener("click", function enableAudio() {
   window.speechSynthesis.resume();
-  document.removeEventListener("click", enable);
+  document.removeEventListener("click", enableAudio);
 });
 
-/* UPDATE UI */
-function updateUI(){
+/* ================= BREATHING ================= */
 
-  if(stress < 0) stress = 0;
-  if(stress > 100) stress = 100;
+function startBreathing(speed) {
+  clearInterval(breathingInterval);
 
-  stressText.innerText = "Stress Level: " + Math.round(stress) + "%";
+  breathingInterval = setInterval(() => {
+    orb.style.transform = "scale(1.5)";
+    setTimeout(() => {
+      orb.style.transform = "scale(1)";
+    }, speed / 2);
+  }, speed);
+}
 
-  let state;
+/* ================= STRESS UPDATE ================= */
 
-  if(stress > 70){
-    state = "high";
-    document.body.style.background="#2b0000";
-    message.innerText="High stress detected";
-    orb.style.transform="scale(1.3)";
+function updateStress() {
+
+  if (stressScore < 0) stressScore = 0;
+  if (stressScore > 100) stressScore = 100;
+
+  stressText.innerText = "Stress Level: " + Math.round(stressScore) + "%";
+
+  let currentState = "";
+
+  if (stressScore > 70) {
+    currentState = "high";
+    document.body.style.backgroundColor = "#2b0000";
+    instruction.innerText = "High stress detected.";
+    startBreathing(2000);
   }
-  else if(stress > 40){
-    state = "medium";
-    document.body.style.background="#1e293b";
-    message.innerText="Moderate stress";
-    orb.style.transform="scale(1.1)";
+  else if (stressScore > 40) {
+    currentState = "medium";
+    document.body.style.backgroundColor = "#1e293b";
+    instruction.innerText = "Moderate stress.";
+    startBreathing(3000);
   }
-  else{
-    state = "low";
-    document.body.style.background="#0f172a";
-    message.innerText="Calm";
-    orb.style.transform="scale(1)";
+  else {
+    currentState = "low";
+    document.body.style.backgroundColor = "#0f172a";
+    instruction.innerText = "Low stress. You are calm.";
+    startBreathing(4000);
   }
 
-  if(state !== lastState){
-    if(state==="high"){
-      speak("Your stress is high. Do a breathing exercise now.");
+  // Speak only when stress level changes
+  if (currentState !== lastStressState) {
+
+    if (currentState === "high") {
+      speak("You are in high stress. Keep breathing slowly.");
     }
-    if(state==="medium"){
-      speak("Your stress is moderate. Slow your breathing.");
+    else if (currentState === "medium") {
+      speak("Moderate stress detected. Regulate your breathing.");
     }
-    if(state==="low"){
+    else {
       speak("You are calm.");
     }
-    lastState = state;
+
+    lastStressState = currentState;
   }
 }
 
-/* CAMERA */
-async function startCamera(){
+/* ================= CAMERA INITIALIZATION ================= */
 
-  try{
-    const stream = await navigator.mediaDevices.getUserMedia({video:true});
-    video.srcObject = stream;
-  }catch(e){
-    message.innerText="Camera permission denied";
+async function initCamera() {
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    videoElement.srcObject = stream;
+  } catch (err) {
+    instruction.innerText = "Camera access denied.";
     return;
   }
 
   const faceMesh = new FaceMesh({
-    locateFile: file =>
-    `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
+    locateFile: (file) =>
+      `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
   });
 
   faceMesh.setOptions({
-    maxNumFaces:1,
-    refineLandmarks:true,
-    minDetectionConfidence:0.6,
-    minTrackingConfidence:0.6
+    maxNumFaces: 1,
+    refineLandmarks: true,
+    minDetectionConfidence: 0.6,
+    minTrackingConfidence: 0.6
   });
 
   faceMesh.onResults(results => {
 
-    if(!results.multiFaceLandmarks.length) return;
+    if (!results.multiFaceLandmarks.length) return;
 
     const landmarks = results.multiFaceLandmarks[0];
     const nose = landmarks[1];
     const currentX = nose.x;
 
-    if(lastNoseX !== null){
+    if (lastNoseX !== null) {
       const movement = Math.abs(currentX - lastNoseX);
-      if(movement > 0.02){
-        stress += 5;
+
+      if (movement > 0.02) {
+        stressScore += 4;
       }
     }
 
     lastNoseX = currentX;
 
-    stress -= 0.5;
-    updateUI();
+    // natural calming decay
+    stressScore -= 0.5;
+
+    updateStress();
   });
 
-  const camera = new Camera(video,{
-    onFrame: async ()=>{
-      await faceMesh.send({image:video});
+  const camera = new Camera(videoElement, {
+    onFrame: async () => {
+      await faceMesh.send({ image: videoElement });
     },
-    width:640,
-    height:480
+    width: 640,
+    height: 480
   });
 
   camera.start();
 }
 
-updateUI();
-startCamera();{
-  if (!voiceUnlocked) return;
-  speechSynthesis.cancel();
-  const msg = new SpeechSynthesisUtterance(text);
-  msg.rate = 0.9;
-  speechSynthesis.speak(msg);
-}
+/* ================= START SYSTEM ================= */
 
-// MODIFY your updateStressDisplay function like this:
-const originalUpdateStressDisplay = updateStressDisplay;
-
-updateStressDisplay = function () {
-
-  originalUpdateStressDisplay();
-
-  if (stressLevel >= 70 && !highStressTriggered) {
-
-    highStressTriggered = true;
-
-    speak("Your stress level is high. Please start a calming activity.");
-
-    // Random activity
-    const activities = ["breathe", "release", "ground"];
-    const random = activities[Math.floor(Math.random() * activities.length)];
-
-    setTimeout(() => {
-      showScreen(random);
-    }, 1500);
-  }
-
-  if (stressLevel < 60) {
-    highStressTriggered = false;
-  }
-};
-
+startBreathing(4000);
+updateStress();
+initCamera();
