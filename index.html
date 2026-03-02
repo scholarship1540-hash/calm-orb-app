@@ -1,195 +1,115 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AI Stress Monitor</title>
 <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
-<body class="bg-slate-900 text-white min-h-screen flex flex-col items-center justify-center">
+<body class="bg-black text-white flex flex-col items-center min-h-screen">
 
-<h1 class="text-4xl mb-6">AI Stress Monitor</h1>
+<h1 class="text-4xl mt-6 mb-4">AI Stress Monitor</h1>
 
-<div id="home">
+<!-- CAMERA -->
+<video id="camera" autoplay playsinline class="w-80 rounded-lg border border-blue-500"></video>
 
-  <div class="w-64 h-64 bg-blue-500 rounded-full flex items-center justify-center text-xl cursor-pointer"
-       id="stressCircle">
-       Hold
-  </div>
-
-  <p class="mt-6 text-2xl">Stress Level: <span id="stressValue">40</span>%</p>
-  <p id="statusText" class="mt-2 text-gray-400">Press and hold the circle</p>
-
+<!-- STRESS DISPLAY -->
+<div class="mt-6 text-2xl">
+Stress Level: <span id="stressValue">40</span>%
 </div>
 
-<!-- BREATHING SCREEN -->
-<div id="breatheScreen" class="hidden text-center">
-  <h2 class="text-3xl mb-6">Breathing Exercise</h2>
-  <p class="text-xl mb-4" id="breathText">Inhale...</p>
-  <button onclick="goHome()" class="mt-6 px-6 py-2 bg-blue-600 rounded">Back</button>
+<!-- HOME SCREEN -->
+<div id="homeScreen" class="mt-6">
+<button id="increaseStress" class="bg-red-600 px-6 py-2 rounded">
+Simulate Stress
+</button>
 </div>
 
-<!-- GROUNDING GAME -->
-<div id="groundScreen" class="hidden text-center">
-  <h2 class="text-3xl mb-6">Grounding Game</h2>
-  <p class="mb-4">Tap the glowing box</p>
-  <div id="gameBox" class="w-32 h-32 bg-green-500 mx-auto cursor-pointer"></div>
-  <p class="mt-4">Score: <span id="score">0</span></p>
-  <button onclick="goHome()" class="mt-6 px-6 py-2 bg-blue-600 rounded">Back</button>
-</div>
-
-<!-- RELEASE SCREEN -->
-<div id="releaseScreen" class="hidden text-center">
-  <h2 class="text-3xl mb-6">Thought Release</h2>
-  <p class="mb-4">Take 5 deep breaths slowly.</p>
-  <button onclick="goHome()" class="mt-6 px-6 py-2 bg-blue-600 rounded">Back</button>
+<!-- ACTIVITY SCREEN -->
+<div id="activityScreen" class="hidden mt-8 text-center">
+<h2 class="text-3xl mb-4">Breathing Exercise</h2>
+<p id="breathText" class="text-xl">Inhale...</p>
 </div>
 
 <script>
 
-/* ================= STATE ================= */
-
 let stressLevel = 40;
-let holdStart = 0;
 let voiceEnabled = false;
-let score = 0;
-let gameInterval;
+
+/* ================= CAMERA ================= */
+
+const video = document.getElementById("camera");
+
+navigator.mediaDevices.getUserMedia({ video: true })
+.then(stream => {
+    video.srcObject = stream;
+})
+.catch(err => {
+    alert("Camera permission denied");
+});
 
 /* ================= VOICE ================= */
 
 document.body.addEventListener("click", () => {
-  if (!voiceEnabled) {
-    const unlock = new SpeechSynthesisUtterance("Voice activated");
-    window.speechSynthesis.speak(unlock);
-    voiceEnabled = true;
-  }
+    if (!voiceEnabled) {
+        const unlock = new SpeechSynthesisUtterance("Voice enabled");
+        speechSynthesis.speak(unlock);
+        voiceEnabled = true;
+    }
 }, { once: true });
 
 function speak(text) {
-  if (!voiceEnabled) return;
-  window.speechSynthesis.cancel();
-  const speech = new SpeechSynthesisUtterance(text);
-  speech.rate = 0.9;
-  window.speechSynthesis.speak(speech);
+    if (!voiceEnabled) return;
+    speechSynthesis.cancel();
+    const msg = new SpeechSynthesisUtterance(text);
+    msg.rate = 0.9;
+    speechSynthesis.speak(msg);
 }
 
-/* ================= STRESS HOLD DETECTION ================= */
-
-const circle = document.getElementById("stressCircle");
-
-circle.addEventListener("mousedown", () => {
-  holdStart = Date.now();
-});
-
-circle.addEventListener("mouseup", () => {
-  let duration = Date.now() - holdStart;
-
-  if (duration < 500) {
-    stressLevel += 15;
-  } else if (duration < 1500) {
-    stressLevel += 5;
-  } else {
-    stressLevel -= 10;
-  }
-
-  stressLevel = Math.max(0, Math.min(100, stressLevel));
-  updateStress();
-});
-
-/* ================= UPDATE STRESS ================= */
+/* ================= STRESS UPDATE ================= */
 
 function updateStress() {
+    document.getElementById("stressValue").textContent = stressLevel;
 
-  document.getElementById("stressValue").textContent = stressLevel;
-
-  if (stressLevel >= 70) {
-    speak("Your stress level is high. Starting a calming activity.");
-    startRandomExercise();
-  }
-}
-
-/* ================= RANDOM EXERCISE ================= */
-
-function startRandomExercise() {
-
-  const exercises = ["breathe", "ground", "release"];
-  const choice = exercises[Math.floor(Math.random() * exercises.length)];
-
-  if (choice === "breathe") startBreathing();
-  if (choice === "ground") startGroundGame();
-  if (choice === "release") startRelease();
-}
-
-/* ================= BREATHING ================= */
-
-function startBreathing() {
-  showScreen("breatheScreen");
-  speak("Follow the breathing exercise. Inhale slowly.");
-
-  let phases = ["Inhale...", "Hold...", "Exhale..."];
-  let index = 0;
-
-  let interval = setInterval(() => {
-    document.getElementById("breathText").textContent = phases[index];
-    index++;
-
-    if (index > 2) {
-      clearInterval(interval);
-      stressLevel -= 20;
-      updateStress();
+    if (stressLevel >= 70) {
+        startActivity();
     }
-  }, 3000);
 }
 
-/* ================= GROUND GAME ================= */
+/* ================= SIMULATE STRESS ================= */
 
-function startGroundGame() {
-
-  showScreen("groundScreen");
-  speak("Tap the green box to focus.");
-
-  score = 0;
-  document.getElementById("score").textContent = score;
-
-  const box = document.getElementById("gameBox");
-
-  box.onclick = () => {
-    score++;
-    document.getElementById("score").textContent = score;
-    stressLevel -= 3;
+document.getElementById("increaseStress").onclick = () => {
+    stressLevel += 15;
+    if (stressLevel > 100) stressLevel = 100;
     updateStress();
-  };
+};
+
+/* ================= ACTIVITY ================= */
+
+function startActivity() {
+
+    document.getElementById("homeScreen").classList.add("hidden");
+    document.getElementById("activityScreen").classList.remove("hidden");
+
+    speak("Your stress level is high. Follow this breathing exercise.");
+
+    let phases = ["Inhale slowly...", "Hold...", "Exhale slowly..."];
+    let index = 0;
+
+    let interval = setInterval(() => {
+        document.getElementById("breathText").textContent = phases[index];
+        index++;
+
+        if (index > 2) {
+            clearInterval(interval);
+            stressLevel -= 30;
+            if (stressLevel < 0) stressLevel = 0;
+            updateStress();
+        }
+    }, 3000);
 }
 
-/* ================= RELEASE ================= */
-
-function startRelease() {
-  showScreen("releaseScreen");
-  speak("Take five deep breaths. You are safe.");
-  stressLevel -= 15;
-  updateStress();
-}
-
-/* ================= SCREEN CONTROL ================= */
-
-function showScreen(id) {
-  document.getElementById("home").classList.add("hidden");
-  document.getElementById("breatheScreen").classList.add("hidden");
-  document.getElementById("groundScreen").classList.add("hidden");
-  document.getElementById("releaseScreen").classList.add("hidden");
-
-  document.getElementById(id).classList.remove("hidden");
-}
-
-function goHome() {
-  document.getElementById("home").classList.remove("hidden");
-  document.getElementById("breatheScreen").classList.add("hidden");
-  document.getElementById("groundScreen").classList.add("hidden");
-  document.getElementById("releaseScreen").classList.add("hidden");
-}
+updateStress();
 
 </script>
-
 </body>
 </html>
