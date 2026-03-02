@@ -140,3 +140,37 @@ const camera = new Camera(videoElement, {
 });
 
 camera.start();
+// Accelerometer Detection (Mobile Only)
+
+let shakeThreshold = 15;
+let lastX = null;
+let lastY = null;
+let lastZ = null;
+
+window.addEventListener("devicemotion", function(event) {
+
+  let acceleration = event.accelerationIncludingGravity;
+
+  if (!acceleration) return;
+
+  let x = acceleration.x;
+  let y = acceleration.y;
+  let z = acceleration.z;
+
+  if (lastX !== null) {
+    let delta = Math.abs(x + y + z - lastX - lastY - lastZ);
+
+    if (delta > shakeThreshold && stressLevel !== "panic") {
+      stressLevel = "high";
+      text.innerText = "Agitated movement detected. Slow down.";
+      document.body.style.backgroundColor = "#2b0000";
+      startBreathing(2000);
+    }
+  }
+
+  lastX = x;
+  lastY = y;
+  lastZ = z;
+
+});
+
