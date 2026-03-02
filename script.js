@@ -6,7 +6,8 @@ let stressLevel = "low";
 let breathingInterval = null;
 
 // Detect taps anywhere on screen
-document.body.addEventListener("click", () => {
+document.body.addEventListener("click", (event) => {
+  if (stressLevel === "panic") return;  // ignore taps during panic mode
   const now = Date.now();
   tapTimes.push(now);
 
@@ -81,3 +82,4 @@ panicBtn.addEventListener("click", () => {
 
   startBreathing(5000);
 });
+
