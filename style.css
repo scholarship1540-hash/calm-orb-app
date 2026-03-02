@@ -1,22 +1,30 @@
-body{
-  margin:0;
-  background:#0f172a;
-  color:white;
-  text-align:center;
-  font-family:Arial;
-  transition:background 1s ease;
+body {
+  margin: 0;
+  background-color: #0f172a;
+  color: white;
+  font-family: Arial, sans-serif;
+  text-align: center;
 }
 
-video{
-  margin-top:20px;
-  border-radius:10px;
+.container {
+  margin-top: 30px;
 }
 
-.orb{
-  width:150px;
-  height:150px;
-  background:#3b82f6;
-  border-radius:50%;
-  margin:30px auto;
-  transition:transform 1s ease;
+.orb {
+  width: 150px;
+  height: 150px;
+  background: #3b82f6;
+  border-radius: 50%;
+  margin: 20px auto;
+  transition: transform 1.5s ease-in-out;
+}
+
+#camera {
+  border-radius: 10px;
+  border: 2px solid #3b82f6;
+}
+
+#stressValue {
+  font-size: 24px;
+  font-weight: bold;
 }
