@@ -7,9 +7,6 @@ document.addEventListener("DOMContentLoaded", function () {
   const monitorSection = document.getElementById("monitor");
   const activitySection = document.getElementById("activity");
 
-  const thoughtContainer = document.getElementById("thoughtContainer");
-  const releasedCountEl = document.getElementById("releasedCount");
-
   let stressScore = 20;
   let lastBlinkTime = 0;
   let lastNoseX = null;
@@ -54,10 +51,20 @@ document.addEventListener("DOMContentLoaded", function () {
     monitorSection.style.display = "none";
     activitySection.style.display = "block";
 
+    startThoughtRelease();
+  }
+
+  function startThoughtRelease() {
+    releasedCount = 0;
+    document.getElementById("releasedCount").innerText = 0;
     createThoughtCard();
   }
 
   function createThoughtCard() {
+
+    const container = document.getElementById("thoughtContainer");
+    const counterEl = document.getElementById("releasedCount");
+
     if (thoughts.length === 0) return;
 
     const text = thoughts.shift();
@@ -80,31 +87,36 @@ document.addEventListener("DOMContentLoaded", function () {
 
     document.onmouseup = (e) => {
       document.onmousemove = null;
+
       const diff = e.clientX - startX;
 
       if (Math.abs(diff) > 100) {
+
         card.remove();
         releasedCount++;
-        releasedCountEl.innerText = releasedCount;
+        counterEl.innerText = releasedCount;
 
         stressScore -= 15;
-        createParticles();
+
+        createParticles(container);
 
         if (releasedCount >= 5) {
           showCompletion();
         } else {
           createThoughtCard();
         }
+
       } else {
         card.style.transform = "translateX(-50%)";
       }
     };
 
-    thoughtContainer.appendChild(card);
+    container.appendChild(card);
   }
 
-  function createParticles() {
+  function createParticles(container) {
     for (let i = 0; i < 12; i++) {
+
       const p = document.createElement("div");
       p.style.position = "absolute";
       p.style.width = "6px";
@@ -122,7 +134,7 @@ document.addEventListener("DOMContentLoaded", function () {
         { transform: `translate(${Math.cos(angle)*distance}px, ${Math.sin(angle)*distance}px)`, opacity: 0 }
       ], { duration: 800 });
 
-      thoughtContainer.appendChild(p);
+      container.appendChild(p);
       setTimeout(() => p.remove(), 800);
     }
   }
@@ -130,13 +142,14 @@ document.addEventListener("DOMContentLoaded", function () {
   function showCompletion() {
     activitySection.innerHTML = `
       <h1>✨ Well Done</h1>
-      <p>You released your thoughts.</p>
+      <p>You released your thoughts successfully.</p>
     `;
   }
 
   async function initCamera() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+
       videoElement.srcObject = stream;
 
       videoElement.onloadedmetadata = () => {
@@ -151,6 +164,7 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function startFaceMesh() {
+
     const faceMesh = new FaceMesh({
       locateFile: file =>
         `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
@@ -168,9 +182,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
       const landmarks = results.multiFaceLandmarks[0];
 
-      const eyeDistance = Math.abs(
-        landmarks[159].y - landmarks[145].y
-      );
+      const eyeDistance =
+        Math.abs(landmarks[159].y - landmarks[145].y);
 
       if (eyeDistance < 0.01) {
         const now = Date.now();
@@ -180,9 +193,8 @@ document.addEventListener("DOMContentLoaded", function () {
         }
       }
 
-      const movement = Math.abs(
-        landmarks[1].x - (lastNoseX || landmarks[1].x)
-      );
+      const movement =
+        Math.abs(landmarks[1].x - (lastNoseX || landmarks[1].x));
 
       if (movement > 0.02) stressScore += 10;
 
