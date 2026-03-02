@@ -1,10 +1,25 @@
 const orb = document.querySelector(".orb");
 const text = document.querySelector("p");
 const panicBtn = document.getElementById("panicBtn");
+const videoElement = document.getElementById("camera");
 
 let tapTimes = [];
 let stressLevel = "low";
 let breathingInterval = null;
+
+/* =========================
+   VOICE FUNCTION
+========================= */
+
+function speak(message) {
+  const speech = new SpeechSynthesisUtterance(message);
+  speech.rate = 0.9;
+  speech.pitch = 1;
+  speech.volume = 1;
+
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(speech);
+}
 
 /* =========================
    TAP STRESS DETECTION
@@ -47,16 +62,19 @@ function applyIntervention() {
   if (stressLevel === "high") {
     document.body.style.backgroundColor = "#2b0000";
     text.innerText = "High stress detected. Slow down with me.";
+    speak("High stress detected. You are safe. Slow your breathing.");
     startBreathing(2000);
   } 
   else if (stressLevel === "medium") {
     document.body.style.backgroundColor = "#1e293b";
     text.innerText = "Let’s regulate together.";
+    speak("Let us regulate together.");
     startBreathing(3000);
   } 
   else {
     document.body.style.backgroundColor = "#0f172a";
     text.innerText = "Nice and steady.";
+    speak("Nice and steady.");
     startBreathing(4000);
   }
 }
@@ -68,7 +86,7 @@ function startBreathing(speed) {
     orb.style.transform = "scale(1.5)";
 
     if (navigator.vibrate) {
-      navigator.vibrate(50);
+      navigator.vibrate([200, 200, 200]);
     }
 
     setTimeout(() => {
@@ -91,14 +109,13 @@ panicBtn.addEventListener("click", function (event) {
   document.body.style.backgroundColor = "#000000";
   text.innerText = "Panic reset activated. Follow the slow rhythm.";
 
+  speak("Panic reset activated. You are safe. Follow the slow rhythm.");
   startBreathing(5000);
 });
 
 /* =========================
-   FACE DETECTION (Camera Trigger)
+   FACE DETECTION
 ========================= */
-
-const videoElement = document.getElementById("camera");
 
 navigator.mediaDevices.getUserMedia({ video: true })
   .then(stream => {
@@ -121,11 +138,11 @@ faceDetection.setOptions({
 
 faceDetection.onResults(results => {
   if (results.detections.length > 0 && stressLevel !== "panic") {
-
     stressLevel = "face";
 
     document.body.style.backgroundColor = "#111827";
     text.innerText = "Face detected. Let’s stay calm.";
+    speak("Face detected. You are safe. Let's stay calm.");
 
     startBreathing(3500);
   }
@@ -140,7 +157,23 @@ const camera = new Camera(videoElement, {
 });
 
 camera.start();
-// Accelerometer Detection (Mobile Only)
+
+/* =========================
+   ACCELEROMETER DETECTION
+========================= */
+
+// iOS permission request
+if (typeof DeviceMotionEvent !== "undefined" &&
+    typeof DeviceMotionEvent.requestPermission === "function") {
+
+  DeviceMotionEvent.requestPermission()
+    .then(permissionState => {
+      if (permissionState === "granted") {
+        console.log("Motion permission granted");
+      }
+    })
+    .catch(console.error);
+}
 
 let shakeThreshold = 15;
 let lastX = null;
@@ -150,7 +183,6 @@ let lastZ = null;
 window.addEventListener("devicemotion", function(event) {
 
   let acceleration = event.accelerationIncludingGravity;
-
   if (!acceleration) return;
 
   let x = acceleration.x;
@@ -162,8 +194,11 @@ window.addEventListener("devicemotion", function(event) {
 
     if (delta > shakeThreshold && stressLevel !== "panic") {
       stressLevel = "high";
-      text.innerText = "Agitated movement detected. Slow down.";
+
       document.body.style.backgroundColor = "#2b0000";
+      text.innerText = "Agitated movement detected. Slow down.";
+      speak("Agitated movement detected. You are safe. Slow your breathing.");
+
       startBreathing(2000);
     }
   }
@@ -173,4 +208,3 @@ window.addEventListener("devicemotion", function(event) {
   lastZ = z;
 
 });
-
