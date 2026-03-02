@@ -74,12 +74,15 @@ function startBreathing(speed) {
 }
 const panicBtn = document.getElementById("panicBtn");
 
-panicBtn.addEventListener("click", () => {
+panicBtn.addEventListener("click", function (event) {
+  event.stopPropagation();   // prevents body click trigger
+
   clearInterval(breathingInterval);
+
+  stressLevel = "panic";     // lock state
 
   document.body.style.backgroundColor = "#000000";
   text.innerText = "Panic reset activated. Follow the slow rhythm.";
 
   startBreathing(5000);
 });
-
