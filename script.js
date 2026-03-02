@@ -1,33 +1,13 @@
-let stress = 40;
+/* ================= HIGH STRESS AUTO TRIGGER ================= */
+
 let voiceUnlocked = false;
-let activityRunning = false;
+let highStressTriggered = false;
 
-const stressText = document.getElementById("stressValue");
-const increaseBtn = document.getElementById("increaseBtn");
-const activity = document.getElementById("activity");
-const breathText = document.getElementById("breathText");
-const video = document.getElementById("camera");
-
-/* ================= CAMERA ================= */
-
-window.onload = function () {
-
-  navigator.mediaDevices.getUserMedia({ video: true })
-    .then(stream => {
-      video.srcObject = stream;
-    })
-    .catch(err => {
-      alert("Camera error: " + err);
-    });
-
-};
-
-/* ================= VOICE UNLOCK ================= */
-
+// Unlock voice on first click
 document.body.addEventListener("click", function () {
   if (!voiceUnlocked) {
-    const msg = new SpeechSynthesisUtterance("System ready");
-    speechSynthesis.speak(msg);
+    const unlock = new SpeechSynthesisUtterance("System ready");
+    speechSynthesis.speak(unlock);
     voiceUnlocked = true;
   }
 }, { once: true });
@@ -40,47 +20,29 @@ function speak(text) {
   speechSynthesis.speak(msg);
 }
 
-/* ================= STRESS BUTTON ================= */
+// MODIFY your updateStressDisplay function like this:
+const originalUpdateStressDisplay = updateStressDisplay;
 
-increaseBtn.onclick = function () {
+updateStressDisplay = function () {
 
-  stress += 15;
-  if (stress > 100) stress = 100;
+  originalUpdateStressDisplay();
 
-  stressText.innerText = stress;
+  if (stressLevel >= 70 && !highStressTriggered) {
 
-  if (stress >= 70 && !activityRunning) {
-    startActivity();
+    highStressTriggered = true;
+
+    speak("Your stress level is high. Please start a calming activity.");
+
+    // Random activity
+    const activities = ["breathe", "release", "ground"];
+    const random = activities[Math.floor(Math.random() * activities.length)];
+
+    setTimeout(() => {
+      showScreen(random);
+    }, 1500);
+  }
+
+  if (stressLevel < 60) {
+    highStressTriggered = false;
   }
 };
-
-/* ================= ACTIVITY ================= */
-
-function startActivity() {
-
-  activityRunning = true;
-  activity.style.display = "block";
-
-  speak("Your stress is high. Please breathe slowly.");
-
-  const steps = ["Inhale slowly...", "Hold...", "Exhale slowly..."];
-  let i = 0;
-
-  let interval = setInterval(function () {
-
-    breathText.innerText = steps[i];
-    i++;
-
-    if (i >= steps.length) {
-      clearInterval(interval);
-
-      stress -= 30;
-      if (stress < 0) stress = 0;
-
-      stressText.innerText = stress;
-      activity.style.display = "none";
-      activityRunning = false;
-    }
-
-  }, 3000);
-}
