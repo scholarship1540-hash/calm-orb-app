@@ -13,12 +13,16 @@ document.addEventListener("DOMContentLoaded", function () {
   let activityStarted = false;
   let cameraInstance = null;
 
+  /* ================= VOICE ================= */
+
   function speak(message) {
     const speech = new SpeechSynthesisUtterance(message);
     speech.rate = 0.9;
     window.speechSynthesis.cancel();
     window.speechSynthesis.speak(speech);
   }
+
+  /* ================= STRESS ================= */
 
   function updateStress() {
     stressScore = Math.max(0, Math.min(100, stressScore));
@@ -35,6 +39,7 @@ document.addEventListener("DOMContentLoaded", function () {
     if (cameraInstance) cameraInstance.stop();
     const stream = videoElement.srcObject;
     if (stream) stream.getTracks().forEach(track => track.stop());
+
     monitorSection.style.display = "none";
     activitySection.style.display = "block";
   }
@@ -101,7 +106,7 @@ document.addEventListener("DOMContentLoaded", function () {
           card.remove();
           releasedCount++;
           document.getElementById("releasedCount").innerText = releasedCount;
-          stressScore -= 10;
+          stressScore -= 15;
           createCard();
         } else {
           card.style.transform = "translateX(-50%)";
@@ -123,6 +128,7 @@ document.addEventListener("DOMContentLoaded", function () {
   let rhythmTimer = null;
 
   window.startRhythm = function () {
+
     document.getElementById("activityMenu").style.display = "none";
     document.getElementById("rhythmSection").style.display = "block";
 
@@ -137,10 +143,12 @@ document.addEventListener("DOMContentLoaded", function () {
   };
 
   function nextRound() {
+
     const dots = document.querySelectorAll(".dot");
 
-    if (currentTarget >= 0)
+    if (currentTarget >= 0) {
       dots[currentTarget].classList.remove("active");
+    }
 
     currentTarget = Math.floor(Math.random() * dots.length);
     dots[currentTarget].classList.add("active");
@@ -153,11 +161,13 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   document.addEventListener("click", function (e) {
+
     if (!e.target.classList.contains("dot")) return;
 
     const clicked = parseInt(e.target.dataset.id);
 
     if (clicked === currentTarget) {
+
       clearTimeout(rhythmTimer);
 
       rhythmScore++;
@@ -166,9 +176,9 @@ document.addEventListener("DOMContentLoaded", function () {
       document.getElementById("rhythmScore").innerText = rhythmScore;
       document.getElementById("rhythmStreak").innerText = rhythmStreak;
 
-      stressScore -= 3;
+      stressScore -= 5;
 
-      if (rhythmSpeed > 700) rhythmSpeed -= 50;
+      if (rhythmSpeed > 600) rhythmSpeed -= 50;
 
       if (rhythmScore >= 15) {
         document.getElementById("rhythmSection").innerHTML =
@@ -177,13 +187,14 @@ document.addEventListener("DOMContentLoaded", function () {
       }
 
       nextRound();
+
     } else {
       rhythmStreak = 0;
       document.getElementById("rhythmStreak").innerText = rhythmStreak;
     }
   });
 
-  /* ================= CAMERA + FACE MESH ================= */
+  /* ================= CAMERA ================= */
 
   async function initCamera() {
     try {
@@ -219,8 +230,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
       if (eyeDistance < 0.01) {
         const now = Date.now();
-        if (now - lastBlinkTime > 600) {
-          stressScore += 5;
+        if (now - lastBlinkTime > 400) {
+          stressScore += 15;
           lastBlinkTime = now;
         }
       }
@@ -228,13 +239,11 @@ document.addEventListener("DOMContentLoaded", function () {
       const movement =
         Math.abs(landmarks[1].x - (lastNoseX || landmarks[1].x));
 
-      if (movement > 0.03) {
-        stressScore += 3;
-      }
+      if (movement > 0.02) stressScore += 10;
 
       lastNoseX = landmarks[1].x;
 
-      stressScore -= 0.02;
+      stressScore -= 0.05;
 
       updateStress();
     });
