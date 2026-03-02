@@ -28,7 +28,7 @@ body {
   font-weight: bold;
 }
 
-/* Activity */
+/* Activity Section */
 
 #thoughtContainer {
   position: relative;
@@ -39,14 +39,15 @@ body {
 .thoughtCard {
   position: absolute;
   left: 50%;
-  top: 50px;
+  top: 60px;
   transform: translateX(-50%);
   padding: 20px;
-  width: 250px;
+  width: 260px;
   background: #1e293b;
-  border-radius: 12px;
+  border-radius: 14px;
   cursor: grab;
   user-select: none;
   text-align: center;
   font-size: 18px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.4);
 }
