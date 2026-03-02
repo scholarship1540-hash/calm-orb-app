@@ -3,10 +3,6 @@
 <head>
   <title>Calm Orb</title>
   <link rel="stylesheet" href="style.css">
-
-  <!-- MediaPipe -->
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/face_detection.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
 </head>
 
 <body>
@@ -14,14 +10,12 @@
   <div class="container">
     <h1>Calm Orb</h1>
 
-    <video id="camera" autoplay muted playsinline width="300"></video>
-
     <div class="orb"></div>
 
-    <p id="statusText">Press and hold the orb to breathe</p>
-    <h2 id="stressLevelDisplay">Stress Level: LOW</h2>
+    <h2 id="stressValue">Stress Level: 0%</h2>
+    <p id="instruction">Tap faster = more stress</p>
 
-    <button id="panicBtn">🆘 I'm Overwhelmed</button>
+    <button id="panicBtn">🆘 Panic Reset</button>
   </div>
 
   <script src="script.js"></script>
