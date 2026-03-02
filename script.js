@@ -1,163 +1,86 @@
-<script>
+let stress = 40;
+let voiceUnlocked = false;
+let activityRunning = false;
 
-/* ==================== GLOBAL STATE ==================== */
+const stressText = document.getElementById("stressValue");
+const increaseBtn = document.getElementById("increaseBtn");
+const activity = document.getElementById("activity");
+const breathText = document.getElementById("breathText");
+const video = document.getElementById("camera");
 
-let stressLevel = 40;
-let currentScreen = "home";
+/* ================= CAMERA ================= */
 
-/* ==================== VOICE SYSTEM ==================== */
+window.onload = function () {
 
-let voiceEnabled = false;
+  navigator.mediaDevices.getUserMedia({ video: true })
+    .then(stream => {
+      video.srcObject = stream;
+    })
+    .catch(err => {
+      alert("Camera error: " + err);
+    });
 
-document.body.addEventListener("click", () => {
-  if (!voiceEnabled) {
-    const unlock = new SpeechSynthesisUtterance("Voice activated");
-    window.speechSynthesis.speak(unlock);
-    voiceEnabled = true;
+};
+
+/* ================= VOICE UNLOCK ================= */
+
+document.body.addEventListener("click", function () {
+  if (!voiceUnlocked) {
+    const msg = new SpeechSynthesisUtterance("System ready");
+    speechSynthesis.speak(msg);
+    voiceUnlocked = true;
   }
 }, { once: true });
 
-function speak(message) {
-  if (!voiceEnabled) return;
-
-  window.speechSynthesis.cancel();
-  const speech = new SpeechSynthesisUtterance(message);
-  speech.rate = 0.9;
-  speech.pitch = 1;
-  speech.volume = 1;
-  window.speechSynthesis.speak(speech);
+function speak(text) {
+  if (!voiceUnlocked) return;
+  speechSynthesis.cancel();
+  const msg = new SpeechSynthesisUtterance(text);
+  msg.rate = 0.9;
+  speechSynthesis.speak(msg);
 }
 
-/* ==================== NAVIGATION ==================== */
+/* ================= STRESS BUTTON ================= */
 
-function showScreen(screenId) {
-  document.querySelectorAll(".screen").forEach(s => s.classList.add("hidden"));
-  document.getElementById("screen-" + screenId).classList.remove("hidden");
-  currentScreen = screenId;
+increaseBtn.onclick = function () {
+
+  stress += 15;
+  if (stress > 100) stress = 100;
+
+  stressText.innerText = stress;
+
+  if (stress >= 70 && !activityRunning) {
+    startActivity();
+  }
+};
+
+/* ================= ACTIVITY ================= */
+
+function startActivity() {
+
+  activityRunning = true;
+  activity.style.display = "block";
+
+  speak("Your stress is high. Please breathe slowly.");
+
+  const steps = ["Inhale slowly...", "Hold...", "Exhale slowly..."];
+  let i = 0;
+
+  let interval = setInterval(function () {
+
+    breathText.innerText = steps[i];
+    i++;
+
+    if (i >= steps.length) {
+      clearInterval(interval);
+
+      stress -= 30;
+      if (stress < 0) stress = 0;
+
+      stressText.innerText = stress;
+      activity.style.display = "none";
+      activityRunning = false;
+    }
+
+  }, 3000);
 }
-
-/* ==================== STRESS DISPLAY ==================== */
-
-const stressBar = document.getElementById("stress-bar");
-const stressLabel = document.getElementById("stress-label");
-const stressIndicator = document.getElementById("stress-indicator");
-const app = document.getElementById("app");
-
-function updateStressDisplay() {
-
-  stressIndicator.style.opacity = "1";
-  stressBar.style.width = stressLevel + "%";
-
-  if (stressLevel < 30) {
-    stressLabel.textContent = "Calm";
-    app.className = "calm-bg h-full w-full relative overflow-auto";
-  }
-  else if (stressLevel < 60) {
-    stressLabel.textContent = "Moderate";
-    app.className = "gradient-bg h-full w-full relative overflow-auto";
-  }
-  else {
-    stressLabel.textContent = "High";
-    app.className = "stressed-bg h-full w-full relative overflow-auto";
-  }
-
-  /* 🔥 HIGH STRESS AUTO TRIGGER */
-  if (stressLevel >= 70) {
-
-    speak("Your stress level is high. Let's do a grounding activity.");
-
-    showScreen("ground");
-
-    setTimeout(() => {
-      startRhythmGame();
-    }, 1000);
-  }
-}
-
-/* ==================== HOLD STRESS DETECTION ==================== */
-
-const detectionCircle = document.getElementById("detection-circle");
-let holdStart = 0;
-
-detectionCircle.addEventListener("mousedown", startHold);
-detectionCircle.addEventListener("mouseup", endHold);
-detectionCircle.addEventListener("touchstart", startHold);
-detectionCircle.addEventListener("touchend", endHold);
-
-function startHold(e) {
-  e.preventDefault();
-  holdStart = Date.now();
-}
-
-function endHold() {
-
-  let duration = Date.now() - holdStart;
-
-  if (duration < 500) {
-    stressLevel = Math.min(stressLevel + 15, 100);
-  }
-  else if (duration < 1500) {
-    stressLevel = Math.min(stressLevel + 5, 100);
-  }
-  else {
-    stressLevel = Math.max(stressLevel - 10, 0);
-  }
-
-  updateStressDisplay();
-}
-
-/* ==================== RHYTHM GAME ==================== */
-
-let rhythmActive = false;
-let rhythmScore = 0;
-let currentTarget = -1;
-let rhythmInterval = null;
-
-function startRhythmGame() {
-
-  rhythmActive = true;
-  rhythmScore = 0;
-
-  document.getElementById("rhythm-score").textContent = "0";
-  activateNextTarget();
-}
-
-function activateNextTarget() {
-
-  if (!rhythmActive) return;
-
-  if (currentTarget >= 0) {
-    document.getElementById("rhythm-" + currentTarget).classList.remove("active");
-  }
-
-  currentTarget = Math.floor(Math.random() * 6);
-
-  document.getElementById("rhythm-" + currentTarget).classList.add("active");
-
-  rhythmInterval = setTimeout(() => {
-    activateNextTarget();
-  }, 1500);
-}
-
-function tapRhythm(index) {
-
-  if (!rhythmActive) return;
-
-  if (index === currentTarget) {
-
-    rhythmScore++;
-    document.getElementById("rhythm-score").textContent = rhythmScore;
-
-    stressLevel = Math.max(stressLevel - 3, 0);
-    updateStressDisplay();
-
-    clearTimeout(rhythmInterval);
-    activateNextTarget();
-  }
-}
-
-/* ==================== INIT ==================== */
-
-updateStressDisplay();
-
-</script>
