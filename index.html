@@ -3,23 +3,20 @@
 <head>
   <title>Calm Orb</title>
   <link rel="stylesheet" href="style.css">
-  <!DOCTYPE html>
-<html>
-<head>
-  <title>Calm Orb</title>
-  <link rel="stylesheet" href="style.css">
 
-  <!-- ADD THESE TWO LINES -->
+  <!-- Face Detection Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/face_detection.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+</head>
 
-</head>
-</head>
 <body>
 
   <div class="container">
     <h1>Calm Orb</h1>
+
+    <!-- Camera (hidden) -->
     <video id="camera" autoplay muted playsinline width="300" style="display:none;"></video>
+
     <div class="orb"></div>
     <p>Press and hold the orb to breathe</p>
     <button id="panicBtn">🆘 I'm Overwhelmed</button>
@@ -28,6 +25,3 @@
   <script src="script.js"></script>
 </body>
 </html>
-
-
-
