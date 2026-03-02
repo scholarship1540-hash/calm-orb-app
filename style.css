@@ -1,45 +1,26 @@
 body {
   margin: 0;
-  background-color: #0f172a;
+  background: #0f172a;
   color: white;
-  font-family: Arial, sans-serif;
   text-align: center;
-}
-
-.container {
-  margin-top: 30px;
+  font-family: Arial;
 }
 
 #camera {
-  border-radius: 10px;
   border: 2px solid #3b82f6;
-}
-
-.orb {
-  width: 120px;
-  height: 120px;
-  background: #3b82f6;
-  border-radius: 50%;
-  margin: 20px auto;
-}
-
-#stressValue {
-  font-size: 24px;
-  font-weight: bold;
+  border-radius: 10px;
 }
 
 button {
-  padding: 12px 20px;
-  margin: 15px;
-  font-size: 16px;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
+  padding: 10px 20px;
+  margin: 10px;
   background: #3b82f6;
   color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
 }
 
-/* BREATHING */
 .breathing-circle {
   width: 200px;
   height: 200px;
@@ -49,35 +30,26 @@ button {
   transition: transform 4s ease-in-out;
 }
 
-/* THOUGHTS */
-#thoughtContainer {
-  position: relative;
-  height: 300px;
-  margin-top: 40px;
-}
-
+/* Thoughts */
 .thoughtCard {
   position: absolute;
   left: 50%;
-  top: 60px;
+  top: 100px;
   transform: translateX(-50%);
   padding: 20px;
   width: 260px;
   background: #1e293b;
-  border-radius: 14px;
+  border-radius: 12px;
   cursor: grab;
-  user-select: none;
-  text-align: center;
-  font-size: 18px;
 }
 
-/* RHYTHM */
+/* Rhythm */
 #rhythmBoard {
   display: grid;
   grid-template-columns: repeat(2, 120px);
   gap: 20px;
   justify-content: center;
-  margin-top: 40px;
+  margin-top: 30px;
 }
 
 .dot {
@@ -86,9 +58,42 @@ button {
   background: #1e293b;
   border-radius: 50%;
   cursor: pointer;
-  transition: background 0.2s;
 }
 
 .dot.active {
   background: #22d3ee;
+}
+
+/* Knife Game */
+#knifeGame {
+  width: 300px;
+  height: 300px;
+  margin: 40px auto;
+  position: relative;
+}
+
+#wheel {
+  width: 200px;
+  height: 200px;
+  background: #22d3ee;
+  border-radius: 50%;
+  margin: auto;
+  position: relative;
+  top: 50px;
+  animation: spin 3s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.knife {
+  position: absolute;
+  width: 4px;
+  height: 40px;
+  background: white;
+  left: 50%;
+  top: -40px;
+  transform-origin: bottom center;
 }
