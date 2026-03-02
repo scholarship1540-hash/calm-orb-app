@@ -13,8 +13,6 @@ document.addEventListener("DOMContentLoaded", function () {
   let activityStarted = false;
   let cameraInstance = null;
 
-  /* ================= VOICE ================= */
-
   function speak(message) {
     const speech = new SpeechSynthesisUtterance(message);
     speech.rate = 0.9;
@@ -22,15 +20,13 @@ document.addEventListener("DOMContentLoaded", function () {
     window.speechSynthesis.speak(speech);
   }
 
-  /* ================= UPDATE STRESS ================= */
-
   function updateStress() {
     if (stressScore > 100) stressScore = 100;
     if (stressScore < 0) stressScore = 0;
 
     stressText.innerText = "Stress Level: " + Math.round(stressScore) + "%";
 
-    // 🔥 Trigger activity when stress > 40 (change to 70 if you want)
+    // 🔥 Trigger at 70%
     if (stressScore > 70 && !activityStarted) {
       activityStarted = true;
       speak("You are in high stress. Do activity now.");
@@ -38,29 +34,22 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
-  /* ================= LAUNCH ACTIVITY ================= */
-
   function launchActivity() {
 
-    // Stop MediaPipe camera loop
     if (cameraInstance) {
       cameraInstance.stop();
     }
 
-    // Stop video stream
     const stream = videoElement.srcObject;
     if (stream) {
       stream.getTracks().forEach(track => track.stop());
     }
 
-    // Switch UI
     monitorSection.style.display = "none";
     activitySection.style.display = "block";
 
     startBreathing();
   }
-
-  /* ================= BREATHING ACTIVITY ================= */
 
   function startBreathing() {
 
@@ -82,8 +71,6 @@ document.addEventListener("DOMContentLoaded", function () {
     }, 8000);
   }
 
-  /* ================= CAMERA ================= */
-
   async function initCamera() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -104,8 +91,6 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
-  /* ================= FACEMESH ================= */
-
   function startFaceMesh() {
 
     const faceMesh = new FaceMesh({
@@ -123,8 +108,7 @@ document.addEventListener("DOMContentLoaded", function () {
     faceMesh.onResults(results => {
 
       if (activityStarted) return;
-
-      if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) return;
+      if (!results.multiFaceLandmarks.length) return;
 
       const landmarks = results.multiFaceLandmarks[0];
 
@@ -141,7 +125,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
       }
 
-      // Head shake detection
+      // Head movement detection
       const nose = landmarks[1];
       const currentX = nose.x;
 
@@ -172,4 +156,3 @@ document.addEventListener("DOMContentLoaded", function () {
   initCamera();
 
 });
-
