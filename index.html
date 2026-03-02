@@ -29,8 +29,9 @@
   <!-- MENU -->
   <div id="activityMenu">
     <h1>Choose Activity</h1>
-    <button onclick="startBreathing()">🧘 Breathing Exercise</button>
+    <button onclick="startBreathing()">🧘 Breathing</button>
     <button onclick="startThoughts()">🧠 Release Thoughts</button>
+    <button onclick="startRhythm()">🎯 Grounding Rhythm</button>
   </div>
 
   <!-- BREATHING -->
@@ -45,6 +46,21 @@
     <h1>Release Your Thoughts</h1>
     <div id="thoughtContainer"></div>
     <h3>Released: <span id="releasedCount">0</span>/5</h3>
+  </div>
+
+  <!-- RHYTHM -->
+  <div id="rhythmSection" style="display:none;">
+    <h1>Grounding Rhythm Game</h1>
+
+    <div id="rhythmBoard">
+      <div class="dot" data-id="0"></div>
+      <div class="dot" data-id="1"></div>
+      <div class="dot" data-id="2"></div>
+      <div class="dot" data-id="3"></div>
+    </div>
+
+    <h3>Score: <span id="rhythmScore">0</span></h3>
+    <h3>Streak: <span id="rhythmStreak">0</span></h3>
   </div>
 
 </div>
