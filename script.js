@@ -48,9 +48,7 @@ function startFace(){
 
     const l=r.multiFaceLandmarks[0];
 
-    /* BLINK DETECTION */
     const eye=Math.abs(l[159].y-l[145].y);
-
     if(eye<0.015){
       if(Date.now()-lastBlink>500){
         stress+=6;
@@ -58,21 +56,14 @@ function startFace(){
       }
     }
 
-    /* HEAD MOVEMENT */
     const currentX=l[1].x;
-
     if(lastX!==null){
       const movement=Math.abs(currentX-lastX);
-      if(movement>0.02){
-        stress+=4;
-      }
+      if(movement>0.02) stress+=4;
     }
 
     lastX=currentX;
-
-    /* CALM REDUCTION */
     stress-=0.005;
-
     updateStress();
   });
 
@@ -119,40 +110,55 @@ window.startThoughts=()=>{
 
   const area=document.getElementById("cardArea");
   area.innerHTML="";
+
+  let thoughts=[
+    "I am not good enough",
+    "What if I fail?",
+    "People are judging me",
+    "I can't do this",
+    "Everything is going wrong",
+    "I feel stressed",
+    "Nothing works for me"
+  ];
+
   let count=0;
 
-  function create(){
+  function createCard(){
     if(count>=5){
-      area.innerHTML="<h3>Well Done</h3>";
+      area.innerHTML="<h3>✨ You Released Your Thoughts ✨</h3>";
       return;
     }
+
     const card=document.createElement("div");
     card.className="card";
-    card.innerText="Release this thought";
+    card.innerText=thoughts[Math.floor(Math.random()*thoughts.length)];
     area.appendChild(card);
 
-    let sx=0;
+    let startX=0;
+
     card.onmousedown=e=>{
-      sx=e.clientX;
+      startX=e.clientX;
       document.onmousemove=ev=>{
-        const dx=ev.clientX-sx;
+        const dx=ev.clientX-startX;
         card.style.transform=
         `translateX(calc(-50% + ${dx}px)) rotate(${dx/10}deg)`;
       };
     };
+
     document.onmouseup=e=>{
       document.onmousemove=null;
-      if(Math.abs(e.clientX-sx)>100){
+      if(Math.abs(e.clientX-startX)>100){
         card.remove();
+        stress-=8;
         count++;
-        stress-=5;
-        create();
+        createCard();
       }else{
         card.style.transform="translateX(-50%)";
       }
     };
   }
-  create();
+
+  createCard();
 };
 
 /* RHYTHM */
@@ -177,6 +183,7 @@ window.startRhythm=()=>{
       }
     };
   });
+
   next();
 };
 
@@ -222,6 +229,16 @@ window.startKnife=()=>{
   }
 
   wheel.addEventListener("click",throwKnife);
+};
+
+/* MOTIVATION */
+window.startMotivation=()=>{
+  hideSections();
+  document.getElementById("motivation").style.display="block";
+};
+
+window.openVideo=()=>{
+  window.open("https://youtube.com/shorts/xh2F5DlLu5U","_blank");
 };
 
 });
