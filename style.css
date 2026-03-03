@@ -27,6 +27,7 @@ button {
   transition:4s;
 }
 
+/* Thought */
 #cardArea {
   height:250px;
   position:relative;
@@ -42,6 +43,7 @@ button {
   cursor:grab;
 }
 
+/* Rhythm */
 #dots {
   display:grid;
   grid-template-columns:repeat(2,100px);
@@ -60,6 +62,7 @@ button {
   background:#22d3ee;
 }
 
+/* Knife */
 #wheel {
   width:200px;
   height:200px;
