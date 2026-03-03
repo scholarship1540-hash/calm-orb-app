@@ -29,18 +29,22 @@ button {
 
 /* Thought */
 #cardArea {
-  height:250px;
+  height:300px;
   position:relative;
 }
 
 .card {
   position:absolute;
   left:50%;
+  top:60px;
   transform:translateX(-50%);
   padding:20px;
+  width:260px;
+  text-align:center;
   background:#1e293b;
   border-radius:10px;
   cursor:grab;
+  user-select:none;
 }
 
 /* Rhythm */
