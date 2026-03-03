@@ -17,7 +17,85 @@ button {
 .section {
   display:none;
 }
+<!DOCTYPE html>
+<html>
+<head>
+  <title>AI Stress Monitor</title>
+  <link rel="stylesheet" href="style.css">
 
+  <!-- MediaPipe -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+</head>
+
+<body>
+
+<div id="monitor">
+  <h1>AI Stress Monitor</h1>
+  <video id="camera" autoplay muted playsinline width="320"></video>
+  <h2 id="stressValue">Stress Level: 0%</h2>
+  <p id="instruction">Initializing camera...</p>
+</div>
+
+<div id="activity" style="display:none;">
+
+  <div id="menu">
+    <h2>Select Activity</h2>
+    <button onclick="startBreathing()">Breathing</button>
+    <button onclick="startThoughts()">Thought Release</button>
+    <button onclick="startRhythm()">Rhythm Game</button>
+    <button onclick="startKnife()">Knife Hit</button>
+    <button onclick="startMotivation()">🎥 Motivation Video</button>
+  </div>
+
+  <!-- BREATHING -->
+  <div id="breathing" class="section">
+    <h2>Breathing</h2>
+    <div class="circle"></div>
+    <p id="breathText">Breathe In</p>
+    <button onclick="goBackMenu()">Back</button>
+  </div>
+
+  <!-- THOUGHTS -->
+  <div id="thoughts" class="section">
+    <h2>Release Thoughts</h2>
+    <div id="cardArea"></div>
+    <button onclick="goBackMenu()">Back</button>
+  </div>
+
+  <!-- RHYTHM -->
+  <div id="rhythm" class="section">
+    <h2>Rhythm Game</h2>
+    <div id="dots">
+      <div class="dot" data-i="0"></div>
+      <div class="dot" data-i="1"></div>
+      <div class="dot" data-i="2"></div>
+      <div class="dot" data-i="3"></div>
+    </div>
+    <button onclick="goBackMenu()">Back</button>
+  </div>
+
+  <!-- KNIFE -->
+  <div id="knife" class="section">
+    <h2>Knife Hit</h2>
+    <div id="wheel"></div>
+    <p>Knives: <span id="knifeLeft">10</span></p>
+    <button onclick="goBackMenu()">Back</button>
+  </div>
+
+  <!-- MOTIVATION -->
+  <div id="motivation" class="section">
+    <h2>🎥 Motivation Video</h2>
+    <button onclick="openVideo()">▶ Watch Motivation Video</button>
+    <br><br>
+    <button onclick="goBackMenu()">Back</button>
+  </div>
+
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
 .circle {
   width:200px;
   height:200px;
@@ -87,3 +165,4 @@ button {
   top:-40px;
   transform-origin:bottom;
 }
+
