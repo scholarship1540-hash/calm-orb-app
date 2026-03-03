@@ -44,24 +44,34 @@ function startFace(){
 
   face.onResults(r=>{
     if(triggered) return;
-    if(!r.multiFaceLandmarks.length) return;
+    if(!r.multiFaceLandmarks || r.multiFaceLandmarks.length===0) return;
 
     const l=r.multiFaceLandmarks[0];
 
+    /* BLINK DETECTION */
     const eye=Math.abs(l[159].y-l[145].y);
-    if(eye<0.01){
-      if(Date.now()-lastBlink>700){
-        stress+=4;
+
+    if(eye<0.015){
+      if(Date.now()-lastBlink>500){
+        stress+=6;
         lastBlink=Date.now();
       }
     }
 
-    const move=Math.abs(l[1].x-(lastX||l[1].x));
-    if(move>0.04) stress+=2;
+    /* HEAD MOVEMENT */
+    const currentX=l[1].x;
 
-    lastX=l[1].x;
+    if(lastX!==null){
+      const movement=Math.abs(currentX-lastX);
+      if(movement>0.02){
+        stress+=4;
+      }
+    }
 
-    stress-=0.01;
+    lastX=currentX;
+
+    /* CALM REDUCTION */
+    stress-=0.005;
 
     updateStress();
   });
