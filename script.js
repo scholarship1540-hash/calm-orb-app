@@ -103,8 +103,9 @@ window.startBreathing=()=>{
   },8000);
 };
 
-/* THOUGHTS */
-window.startThoughts=()=>{
+/* RANDOM THOUGHT RELEASE */
+window.startThoughts=function(){
+
   hideSections();
   document.getElementById("thoughts").style.display="block";
 
@@ -118,117 +119,57 @@ window.startThoughts=()=>{
     "I can't do this",
     "Everything is going wrong",
     "I feel stressed",
-    "Nothing works for me"
+    "Nothing works for me",
+    "I am overwhelmed",
+    "I am behind others",
+    "I can't handle this"
   ];
 
-  let count=0;
+  let released=0;
 
-  function createCard(){
-    if(count>=5){
+  function showCard(){
+
+    if(released>=5){
       area.innerHTML="<h3>✨ You Released Your Thoughts ✨</h3>";
       return;
     }
 
+    const randomIndex=Math.floor(Math.random()*thoughts.length);
+    const thought=thoughts[randomIndex];
+    thoughts.splice(randomIndex,1);
+
     const card=document.createElement("div");
     card.className="card";
-    card.innerText=thoughts[Math.floor(Math.random()*thoughts.length)];
+    card.innerText=thought;
     area.appendChild(card);
 
     let startX=0;
 
-    card.onmousedown=e=>{
+    card.onmousedown=function(e){
       startX=e.clientX;
-      document.onmousemove=ev=>{
+
+      document.onmousemove=function(ev){
         const dx=ev.clientX-startX;
         card.style.transform=
         `translateX(calc(-50% + ${dx}px)) rotate(${dx/10}deg)`;
       };
     };
 
-    document.onmouseup=e=>{
+    document.onmouseup=function(e){
       document.onmousemove=null;
+
       if(Math.abs(e.clientX-startX)>100){
         card.remove();
         stress-=8;
-        count++;
-        createCard();
+        released++;
+        showCard();
       }else{
         card.style.transform="translateX(-50%)";
       }
     };
   }
 
-  createCard();
-};
-
-/* RHYTHM */
-window.startRhythm=()=>{
-  hideSections();
-  document.getElementById("rhythm").style.display="block";
-
-  const dots=document.querySelectorAll(".dot");
-  let target=0;
-
-  function next(){
-    dots.forEach(d=>d.classList.remove("active"));
-    target=Math.floor(Math.random()*4);
-    dots[target].classList.add("active");
-  }
-
-  dots.forEach(d=>{
-    d.onclick=()=>{
-      if(parseInt(d.dataset.i)===target){
-        stress-=2;
-        next();
-      }
-    };
-  });
-
-  next();
-};
-
-/* KNIFE */
-window.startKnife=()=>{
-  hideSections();
-  document.getElementById("knife").style.display="block";
-
-  const wheel=document.getElementById("wheel");
-  wheel.innerHTML="";
-  let knives=10;
-  let angles=[];
-  document.getElementById("knifeLeft").innerText=knives;
-
-  function throwKnife(){
-    if(knives<=0) return;
-
-    const angle=Math.floor(Math.random()*360);
-
-    for(let a of angles){
-      if(Math.abs(a-angle)<20){
-        document.getElementById("knife").innerHTML="<h3>Game Over</h3>";
-        wheel.removeEventListener("click",throwKnife);
-        return;
-      }
-    }
-
-    angles.push(angle);
-
-    const k=document.createElement("div");
-    k.className="knife";
-    k.style.transform=`rotate(${angle}deg)`;
-    wheel.appendChild(k);
-
-    knives--;
-    document.getElementById("knifeLeft").innerText=knives;
-    stress-=3;
-
-    if(knives===0){
-      document.getElementById("knife").innerHTML="<h3>You Win</h3>";
-      wheel.removeEventListener("click",throwKnife);
-    }
-  }
-
-  wheel.addEventListener("click",throwKnife);
+  showCard();
 };
 
 /* MOTIVATION */
